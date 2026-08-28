@@ -1,4 +1,4 @@
-<?php require __DIR__.'/bootstrap.php';require_login();$pdo=db();$error='';
+<?php require __DIR__.'/bootstrap.php';require_permission('integrations.manage');$pdo=db();$error='';
 $apiTypes=['payments'=>'Payments','banking'=>'Banking / Finance','crm'=>'CRM','accounting'=>'Accounting','maps'=>'Maps / Location','analytics'=>'Analytics','messaging'=>'Messaging','storage'=>'Storage / Files','custom'=>'Custom API'];
 $authTypes=['api_key'=>'API Key','bearer'=>'Bearer Token','oauth2'=>'OAuth 2.0','basic'=>'Basic Auth','custom'=>'Custom / Provider specific'];
 if($_SERVER['REQUEST_METHOD']==='POST'){verify_csrf();$a=$_POST['action']??'';$id=(int)($_POST['id']??0);try{

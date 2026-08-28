@@ -56,3 +56,12 @@ CMS PRODUCTIVITY SUITE
 - Optional footer developer credit (disabled by default)
 
 For an existing installation, run database-update.sql once before opening these new modules.
+
+
+MULTI-USER ADMINISTRATION UPDATE
+--------------------------------
+Adds Users, Roles & Permissions, content approval workflow, estimate assignment/follow-up, Security Center, active-session revocation, login history and a topbar notification bell.
+
+Existing installation: run database-update.sql ONCE after backing up the database. Existing administrator accounts are migrated to the protected Owner role.
+
+- Optional authenticator-app two-factor authentication (TOTP) is available from Profile & Security for every administrator account.

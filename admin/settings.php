@@ -1,4 +1,4 @@
-<?php require __DIR__.'/bootstrap.php';require_login();$pdo=db();$set=settings();$error='';
+<?php require __DIR__.'/bootstrap.php';require_permission('settings.manage');$pdo=db();$set=settings();$error='';
 if($_SERVER['REQUEST_METHOD']==='POST'){verify_csrf();$action=$_POST['action']??'';try{
  if($action==='identity'){
   foreach(['admin_brand_name','phone','phone_digits','email','youtube','facebook','tiktok','website','business_hours','developer_credit_text'] as $k)save_setting($k,trim((string)($_POST[$k]??'')));

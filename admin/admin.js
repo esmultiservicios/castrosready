@@ -50,3 +50,13 @@ qa('[data-sortable-list]').forEach(list=>{let dragged=null;const sync=()=>qa('.s
   document.addEventListener('click',e=>{if(!e.target.closest('.cr-select'))closeAll();});
   document.addEventListener('keydown',e=>{if(e.key==='Escape')closeAll();});
 })();
+
+
+// Simple progressive disclosure panels used by user/approval forms.
+document.querySelectorAll('[data-toggle-panel]').forEach(btn=>btn.addEventListener('click',()=>{
+  const el=document.getElementById(btn.dataset.togglePanel||'');if(!el)return;el.classList.toggle('is-collapsed');if(!el.classList.contains('is-collapsed'))el.scrollIntoView({behavior:'smooth',block:'start'});
+}));
+// Keep topbar menus mutually exclusive.
+document.querySelectorAll('.notification-bell,.profile-menu').forEach(menu=>menu.addEventListener('toggle',()=>{
+  if(!menu.open)return;document.querySelectorAll('.notification-bell[open],.profile-menu[open]').forEach(other=>{if(other!==menu)other.open=false;});
+}));
