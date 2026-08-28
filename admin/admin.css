@@ -214,3 +214,257 @@ a.button.ghost:hover,
   .actions>.button,.actions>form,.actions>.action-menu{width:100%!important;min-width:0!important}
   .actions>form .button,.actions>.action-menu>summary{width:100%!important}
 }
+
+
+/* ==========================================================
+   FINAL RESPONSIVE HEADER + FAVICON SETTINGS
+   ========================================================== */
+.mobile-header-actions{display:none;align-items:center;gap:7px;flex:0 0 auto}
+.mobile-status,.mobile-view{min-height:40px;border-radius:12px;text-decoration:none;font-weight:900;display:inline-flex;align-items:center;justify-content:center;border:1px solid transparent;box-shadow:0 5px 14px rgba(16,60,57,.12)}
+.mobile-status{gap:7px;padding:0 11px;background:#dcefe7;color:#18543e;border-color:#a9d2c0;font-size:12px}
+.mobile-status.maintenance{background:#fff0c9;color:#72530d;border-color:#e5c76e}
+.mobile-view{width:40px;background:#0f7777;color:#fff;border-color:#0f7777}
+.mobile-view:hover{background:#0b5f60;color:#fff}
+.mobile-view .ui-icon{width:18px;height:18px}
+.branding-upload-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:stretch}
+.favicon-zone{min-height:180px}
+.saved-favicon{display:grid;grid-template-columns:64px minmax(0,1fr) auto;gap:14px;align-items:center;padding:14px 16px;border:1px solid #c8d9d2;border-radius:15px;background:#edf6f3;margin-top:2px}
+.saved-favicon img{width:56px;height:56px;object-fit:cover;border-radius:12px;border:1px solid #b9cec6;background:#fff;padding:4px}
+.saved-favicon div{display:grid;gap:3px;min-width:0}.saved-favicon small{color:var(--muted);overflow-wrap:anywhere}
+.premium-check{display:flex!important;align-items:center;gap:9px!important;cursor:pointer!important;font-size:12px!important;font-weight:850!important;color:#753035!important}
+.premium-check input{appearance:none;-webkit-appearance:none;width:22px!important;height:22px!important;min-height:22px!important;margin:0!important;border:1px solid #bd8d91!important;border-radius:7px!important;background:#fff!important;display:grid!important;place-items:center!important;padding:0!important}
+.premium-check input:checked{background:#922f34!important;border-color:#922f34!important}.premium-check input:checked:after{content:"✓";color:#fff;font-weight:900;font-size:14px}
+@media(max-width:760px){
+  .admin-head-inner{display:flex!important;align-items:center!important;flex-wrap:nowrap!important;min-height:66px!important;padding:7px 8px!important;gap:7px!important;overflow:visible!important}
+  .head-left{display:flex!important;align-items:center!important;flex:1 1 auto!important;min-width:0!important;gap:7px!important}
+  .mobile-menu{display:inline-flex!important;width:40px!important;height:40px!important;min-width:40px!important;flex:0 0 40px!important;background:#0f7777!important;color:#fff!important;border:1px solid #0f7777!important;box-shadow:0 5px 14px rgba(15,119,119,.16)!important}
+  .admin-brand{display:flex!important;flex:0 0 auto!important;background:transparent!important;border:0!important;box-shadow:none!important;padding:0!important}.admin-brand img{width:40px!important;height:40px!important;border-radius:12px!important}.admin-brand span{display:none!important}
+  .top-shortcuts{display:none!important}
+  .mobile-header-actions{display:flex!important;margin-left:auto!important}
+  .profile-menu{display:block!important;flex:0 0 auto!important}.profile-menu>summary{width:42px!important;height:42px!important;min-height:42px!important;padding:3px!important;background:#103c39!important;color:#fff!important;border:1px solid #103c39!important;border-radius:13px!important;box-shadow:0 6px 16px rgba(16,60,57,.18)!important}.profile-menu>summary .profile-copy,.profile-menu>summary .chev{display:none!important}.profile-menu summary img,.avatar-fallback{width:34px!important;height:34px!important;border-radius:10px!important}
+  .profile-dropdown{position:fixed!important;top:64px!important;right:8px!important;width:min(290px,calc(100vw - 16px))!important}
+  .branding-upload-grid{grid-template-columns:1fr!important}.saved-favicon{grid-template-columns:56px minmax(0,1fr)!important}.saved-favicon .premium-check{grid-column:1/-1!important}
+}
+@media(max-width:430px){
+  .mobile-status{padding:0 9px}.mobile-status b{display:none}.mobile-status{width:40px;padding:0}.mobile-status .status-dot{width:10px;height:10px}
+  .mobile-view,.mobile-status,.mobile-menu{width:38px!important;height:38px!important;min-width:38px!important}.admin-brand img{width:38px!important;height:38px!important}.profile-menu>summary{width:40px!important;height:40px!important;min-height:40px!important}.profile-menu summary img,.avatar-fallback{width:32px!important;height:32px!important}
+}
+
+/* ==========================================================
+   MOBILE HEADER — FINAL LEGIBILITY FIX
+   Every control has an unmistakable visual identity.
+   ========================================================== */
+.mobile-menu-glyph,.mobile-view-glyph{display:inline-block;font-family:Arial,sans-serif;font-weight:900;line-height:1;color:inherit}
+.mobile-menu-glyph{font-size:22px;transform:translateY(-1px)}
+.mobile-view-glyph{font-size:18px}
+.mobile-view b{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:inherit}
+
+@media(max-width:760px){
+  .admin-header{background:#fff!important}
+  .admin-head-inner{min-height:68px!important;padding:8px 10px!important;gap:8px!important;overflow:visible!important}
+  .head-left{display:flex!important;align-items:center!important;flex:1 1 auto!important;min-width:0!important;gap:8px!important}
+
+  /* Menu: dark teal, explicit hamburger — never a blank square. */
+  .mobile-menu{
+    display:inline-flex!important;align-items:center!important;justify-content:center!important;
+    width:42px!important;height:42px!important;min-width:42px!important;flex:0 0 42px!important;
+    padding:0!important;background:#0f7777!important;color:#fff!important;
+    border:2px solid #0b5f60!important;border-radius:13px!important;
+    box-shadow:0 6px 16px rgba(15,119,119,.18)!important
+  }
+  .mobile-menu .ui-icon{display:none!important}
+  .mobile-menu-glyph{display:block!important;color:#fff!important}
+
+  /* Brand: real logo, no decorative square behind it. */
+  .admin-brand{display:flex!important;align-items:center!important;flex:0 0 auto!important;padding:0!important;background:transparent!important;border:0!important;box-shadow:none!important}
+  .admin-brand img{display:block!important;width:42px!important;height:42px!important;min-width:42px!important;object-fit:cover!important;border-radius:50%!important;border:2px solid #f2d45c!important;background:#fff!important;box-shadow:0 5px 14px rgba(16,60,57,.12)!important}
+  .admin-brand span{display:none!important}
+
+  /* Desktop shortcuts never reserve invisible space on mobile. */
+  .top-shortcuts{display:none!important;width:0!important;height:0!important;margin:0!important;padding:0!important;overflow:hidden!important}
+
+  /* Mobile utilities are explicit pills. */
+  .mobile-header-actions{display:flex!important;align-items:center!important;gap:7px!important;margin-left:auto!important;flex:0 0 auto!important}
+  .mobile-status{
+    display:inline-flex!important;align-items:center!important;justify-content:center!important;gap:7px!important;
+    min-width:62px!important;height:42px!important;padding:0 11px!important;
+    background:#e3f2ec!important;color:#154f3a!important;border:2px solid #9bcab7!important;
+    border-radius:13px!important;box-shadow:none!important;font-size:11px!important;font-weight:900!important
+  }
+  .mobile-status .status-dot{width:9px!important;height:9px!important;box-shadow:0 0 0 3px rgba(58,156,114,.12)!important}
+  .mobile-status b{display:inline!important;color:inherit!important;white-space:nowrap!important}
+  .mobile-status.maintenance{min-width:94px!important;background:#fff0c9!important;color:#72530d!important;border-color:#dfbf58!important}
+
+  .mobile-view{
+    display:inline-flex!important;align-items:center!important;justify-content:center!important;gap:5px!important;
+    min-width:58px!important;width:auto!important;height:42px!important;padding:0 10px!important;
+    background:#0f7777!important;color:#fff!important;border:2px solid #0b5f60!important;
+    border-radius:13px!important;box-shadow:0 6px 16px rgba(15,119,119,.16)!important
+  }
+  .mobile-view .ui-icon{display:none!important}.mobile-view-glyph,.mobile-view b{display:inline-block!important;color:#fff!important}
+
+  /* User control stays darkest so it is clearly separate from Site. */
+  .profile-menu{display:block!important;flex:0 0 auto!important}
+  .profile-menu>summary{
+    display:flex!important;align-items:center!important;justify-content:center!important;
+    width:44px!important;height:44px!important;min-height:44px!important;padding:3px!important;
+    background:#103c39!important;color:#fff!important;border:2px solid #0a302e!important;
+    border-radius:14px!important;box-shadow:0 6px 16px rgba(16,60,57,.20)!important
+  }
+  .profile-menu>summary .profile-copy,.profile-menu>summary .chev{display:none!important}
+  .profile-menu summary img,.avatar-fallback{width:34px!important;height:34px!important;border-radius:10px!important;background:#0f7777!important;color:#fff!important}
+}
+
+@media(max-width:480px){
+  .admin-head-inner{padding-inline:7px!important;gap:6px!important}
+  .head-left{gap:6px!important}
+  .mobile-menu,.admin-brand img{width:39px!important;height:39px!important;min-width:39px!important}
+  .mobile-header-actions{gap:5px!important}
+  .mobile-status{min-width:54px!important;height:39px!important;padding:0 8px!important;font-size:10px!important}
+  .mobile-view{min-width:43px!important;width:43px!important;height:39px!important;padding:0!important}
+  .mobile-view b{display:none!important}
+  .profile-menu>summary{width:41px!important;height:41px!important;min-height:41px!important}
+  .profile-menu summary img,.avatar-fallback{width:31px!important;height:31px!important}
+}
+
+@media(max-width:370px){
+  .mobile-status{width:39px!important;min-width:39px!important;padding:0!important}
+  .mobile-status b{display:none!important}
+  .mobile-view{width:39px!important;min-width:39px!important}
+}
+
+/* ==========================================================
+   FINAL ADMIN HOVER CONTRAST POLICY
+   No clickable control may switch to a white surface on hover.
+   ========================================================== */
+@media (hover:hover) and (pointer:fine){
+  button:hover,.button:hover,.icon-btn:hover,.quick-link:hover,
+  .action-menu>summary:hover,.profile-menu>summary:hover,
+  .mobile-menu:hover,.mobile-view:hover{
+    background:#0b5f60!important;
+    color:#fff!important;
+    border-color:#0b5f60!important;
+  }
+  .button.secondary:hover,.button.ghost:hover,a.button.secondary:hover,a.button.ghost:hover,
+  .list-card .button.secondary.small:hover,.request-card .button.secondary.small:hover,
+  .gallery-item .button.secondary.small:hover,.email-card .button.secondary.small:hover,
+  .integration-card .button.secondary.small:hover{
+    background:#0f7777!important;
+    color:#fff!important;
+    border-color:#0f7777!important;
+  }
+  .admin-brand:hover{background:#e7f2ef!important}
+  .mobile-status:hover{background:#d6ece4!important;color:#154f3a!important;border-color:#8fc5b0!important}
+  .mobile-status.maintenance:hover{background:#f9df95!important;color:#65480b!important;border-color:#d6b53f!important}
+  .admin-sidebar a:hover{background:#1a5853!important;color:#fff!important}
+  .admin-sidebar a.active:hover{background:#e8c941!important;color:var(--deep)!important}
+  .action-menu nav a:hover,.action-menu nav button:hover{
+    background:#0f7777!important;color:#fff!important;border-color:#0f7777!important
+  }
+  .action-menu nav .danger-text:hover,.action-menu nav button.danger-text:hover,.action-menu nav a.danger-text:hover{
+    background:#922f34!important;color:#fff!important;border-color:#922f34!important
+  }
+}
+
+/* ==========================================================
+   FINAL POLISH — TOP BAR + CUSTOM SELECTS
+   ========================================================== */
+/* Top bar: every shortcut must be visually identifiable. */
+.top-shortcuts{
+  background:#e7f1ed!important;
+  border:1px solid #c7ddd4!important;
+  box-shadow:0 7px 20px rgba(16,60,57,.07)!important;
+}
+.top-shortcuts .quick-link{
+  background:#0f7777!important;
+  color:#fff!important;
+  border:1px solid #0b6566!important;
+  box-shadow:0 4px 12px rgba(15,119,119,.14)!important;
+}
+.top-shortcuts .quick-link .ui-icon{
+  display:inline-grid!important;
+  color:#fff!important;
+  opacity:1!important;
+}
+.top-shortcuts .quick-link .ui-icon svg{fill:currentColor!important;opacity:1!important}
+.top-shortcuts .quick-link span:not(.ui-icon):not(.status-dot){color:inherit!important}
+.top-shortcuts .quick-link.status-link{
+  background:#dcefe7!important;
+  color:#164f3b!important;
+  border-color:#9cc9b7!important;
+  box-shadow:none!important;
+}
+.top-shortcuts .quick-link.status-link.maintenance{
+  background:#f9df95!important;
+  color:#65480b!important;
+  border-color:#d7b843!important;
+}
+.top-shortcuts .quick-link.public-view-link{
+  background:#103c39!important;
+  color:#fff!important;
+  border-color:#0a302e!important;
+}
+@media (hover:hover) and (pointer:fine){
+  .top-shortcuts .quick-link:hover{background:#0b5f60!important;color:#fff!important;border-color:#094e50!important}
+  .top-shortcuts .quick-link.status-link:hover{background:#cce6dc!important;color:#124532!important;border-color:#83bda5!important}
+  .top-shortcuts .quick-link.status-link.maintenance:hover{background:#f1cf6e!important;color:#5d4209!important;border-color:#c9a72f!important}
+  .top-shortcuts .quick-link.public-view-link:hover{background:#0a302e!important;color:#fff!important;border-color:#082725!important}
+}
+@media(max-width:1180px) and (min-width:761px){
+  .top-shortcuts .quick-link{width:44px!important;height:42px!important;padding:0!important;justify-content:center!important}
+  .top-shortcuts .quick-link span:not(.ui-icon):not(.status-dot),
+  .top-shortcuts .quick-link b{display:none!important}
+  .top-shortcuts .quick-link.status-link{width:auto!important;min-width:72px!important;padding:0 10px!important}
+  .top-shortcuts .quick-link.status-link span:last-child{display:inline!important;font-size:11px!important}
+}
+
+/* Native selects remain as the submitted field, but the visible UI is custom. */
+select.cr-native-select{
+  position:absolute!important;
+  opacity:0!important;
+  pointer-events:none!important;
+  width:1px!important;
+  height:1px!important;
+  min-height:1px!important;
+  padding:0!important;
+  margin:0!important;
+  border:0!important;
+}
+.cr-select{position:relative;min-width:0;width:100%}
+.cr-select-button{
+  width:100%;min-height:48px;padding:11px 46px 11px 14px;
+  border:2px solid #a9cfc1;border-radius:13px;
+  background:#edf7f3;color:#183d37;
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  font:inherit;font-size:14px;font-weight:850;text-align:left;
+  box-shadow:0 3px 10px rgba(16,60,57,.04);
+  position:relative;cursor:pointer;transition:.16s border-color,.16s background,.16s box-shadow;
+}
+.cr-select-button::after{
+  content:'⌄';position:absolute;right:15px;top:50%;transform:translateY(-53%);
+  width:24px;height:24px;border-radius:8px;background:#0f7777;color:#fff;
+  display:grid;place-items:center;font-size:15px;font-weight:900;line-height:1;
+}
+.cr-select.open .cr-select-button,.cr-select-button:focus-visible{
+  border-color:#0f7777;background:#e5f3ee;box-shadow:0 0 0 4px rgba(15,119,119,.11);outline:none;
+}
+.cr-select-list{
+  position:absolute;z-index:500;left:0;right:0;top:calc(100% + 7px);
+  padding:7px;background:#fff;border:1px solid #b9cec6;border-radius:14px;
+  box-shadow:0 18px 45px rgba(16,60,57,.18);display:none;max-height:280px;overflow:auto;
+}
+.cr-select.open .cr-select-list{display:grid;gap:4px}
+.cr-select-option{
+  width:100%;min-height:42px;padding:10px 12px;border:0;border-radius:10px;
+  background:#f4f8f6;color:#203b37;text-align:left;font-size:13px;font-weight:780;
+  display:flex;align-items:center;justify-content:space-between;box-shadow:none;transform:none;
+}
+.cr-select-option:hover,.cr-select-option:focus-visible{background:#dcefe7!important;color:#154d3b!important;box-shadow:none!important;transform:none!important;outline:none}
+.cr-select-option[aria-selected="true"]{background:#0f7777!important;color:#fff!important}
+.cr-select-option[aria-selected="true"]::after{content:'✓';font-weight:900}
+.cr-select-option:disabled{opacity:.45;cursor:not-allowed}
+@media(max-width:520px){
+  .cr-select-button{min-height:50px;font-size:16px;padding-left:13px}
+  .cr-select-list{position:fixed;left:12px;right:12px;top:auto;bottom:12px;max-height:min(55vh,360px);border-radius:18px;padding:9px}
+  .cr-select-option{min-height:48px;font-size:15px}
+}

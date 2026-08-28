@@ -16,3 +16,32 @@ qa('form[data-swal-confirm]').forEach(form=>form.addEventListener('submit',async
 
 qa('[data-confirm-text]').forEach(form=>form.addEventListener('submit',e=>{const expected=form.dataset.confirmText,input=q('[name=confirmation]',form);if(input&&input.value.trim()!==expected){e.preventDefault();input.focus();if(window.showNotify)showNotify('Type '+expected+' exactly to continue.','warning');else input.setCustomValidity('Type '+expected+' exactly to continue.');}}));
 })();
+// Premium custom select UI. The original <select> remains the submitted value.
+(()=>{
+  const all=[...document.querySelectorAll('select:not([multiple])')];
+  const closeAll=(except=null)=>document.querySelectorAll('.cr-select.open').forEach(w=>{if(w!==except){w.classList.remove('open');w.querySelector('.cr-select-button')?.setAttribute('aria-expanded','false')}});
+  all.forEach((select,index)=>{
+    if(select.dataset.customSelectReady==='1')return;
+    select.dataset.customSelectReady='1';
+    select.classList.add('cr-native-select');
+    const wrap=document.createElement('div');wrap.className='cr-select';
+    const btn=document.createElement('button');btn.type='button';btn.className='cr-select-button';btn.setAttribute('aria-haspopup','listbox');btn.setAttribute('aria-expanded','false');
+    const list=document.createElement('div');list.className='cr-select-list';list.setAttribute('role','listbox');list.id='cr-select-'+index;btn.setAttribute('aria-controls',list.id);
+    select.insertAdjacentElement('afterend',wrap);wrap.append(btn,list);
+    const sync=()=>{
+      const selected=select.options[select.selectedIndex];
+      btn.textContent=selected?selected.textContent:'Select an option';
+      [...list.children].forEach((o,i)=>o.setAttribute('aria-selected',String(i===select.selectedIndex)));
+    };
+    [...select.options].forEach((opt,i)=>{
+      const item=document.createElement('button');item.type='button';item.className='cr-select-option';item.setAttribute('role','option');item.textContent=opt.textContent;item.disabled=opt.disabled;
+      item.addEventListener('click',()=>{if(opt.disabled)return;select.selectedIndex=i;select.dispatchEvent(new Event('change',{bubbles:true}));sync();wrap.classList.remove('open');btn.setAttribute('aria-expanded','false');btn.focus();});
+      list.appendChild(item);
+    });
+    btn.addEventListener('click',e=>{e.stopPropagation();const willOpen=!wrap.classList.contains('open');closeAll(wrap);wrap.classList.toggle('open',willOpen);btn.setAttribute('aria-expanded',String(willOpen));if(willOpen){const current=list.children[select.selectedIndex];current?.focus();}});
+    btn.addEventListener('keydown',e=>{if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();if(!wrap.classList.contains('open'))btn.click();}});
+    select.addEventListener('change',sync);sync();
+  });
+  document.addEventListener('click',e=>{if(!e.target.closest('.cr-select'))closeAll();});
+  document.addEventListener('keydown',e=>{if(e.key==='Escape')closeAll();});
+})();

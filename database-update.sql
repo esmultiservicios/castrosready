@@ -9,3 +9,8 @@ ALTER TABLE api_integrations
 INSERT INTO settings(setting_key,setting_value)
 VALUES ('maintenance_image_path','')
 ON DUPLICATE KEY UPDATE setting_value=setting_value;
+
+
+-- Browser tab icon used by both the public website and administrator.
+INSERT INTO settings(setting_key,setting_value) VALUES ('favicon_path','assets/logo.jpg')
+ON DUPLICATE KEY UPDATE setting_value=setting_value;

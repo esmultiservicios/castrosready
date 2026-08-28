@@ -110,3 +110,32 @@ footer{padding:52px 0;background:#172524;color:#e8efec}.footer-grid{display:grid
 @media (prefers-reduced-motion:reduce){
   .floating-whatsapp,.floating-whatsapp::before,.floating-whatsapp span{animation:none!important}
 }
+
+/* ==========================================================
+   FINAL HOVER CONTRAST POLICY
+   Interactive surfaces never become plain white on hover.
+   ========================================================== */
+@media (hover:hover) and (pointer:fine){
+  .contact-links .contact-card:hover{
+    background:#eaf4f1!important;
+    border-color:#8fc0b2!important;
+    box-shadow:0 18px 42px rgba(16,60,57,.14)!important;
+  }
+  .contact-links .contact-card:hover .contact-icon{
+    background:#0f7777!important;
+    color:#fff!important;
+  }
+  .contact-links .contact-card:hover .contact-arrow{
+    color:#0b5f60!important;
+  }
+  .main-nav a:not(.nav-cta):hover{
+    color:#0b5f60!important;
+  }
+  .btn-secondary:hover,.whatsapp-btn:hover,.menu-btn:hover,.main-nav .nav-cta:hover,
+  .gallery-zoom:hover,.site-lightbox>button:hover,.public-upload-item button:hover,
+  .floating-whatsapp:hover{
+    background:#0b5f60!important;
+    color:#fff!important;
+    border-color:#0b5f60!important;
+  }
+}

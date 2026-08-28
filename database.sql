@@ -194,7 +194,7 @@ INSERT INTO settings(setting_key,setting_value) VALUES
 ('email','castrosreadycompany@gmail.com'),
 ('youtube','https://www.youtube.com/@CastrosReady'),
 ('facebook','#'),('tiktok','#'),('website','castrosready.us'),('business_hours',''),
-('admin_brand_name','Castro''s Ready Admin'),('admin_logo_path','assets/logo.jpg'),
+('admin_brand_name','Castro''s Ready Admin'),('admin_logo_path','assets/logo.jpg'),('favicon_path','assets/logo.jpg'),
 ('maintenance_mode','0'),('maintenance_title','We are improving our website.'),('maintenance_text','Castro''s Ready will be back shortly. For immediate assistance, contact us by phone or WhatsApp.'),('maintenance_image_path',''),
 ('whatsapp_enabled','1'),('whatsapp_message','Hello, I would like more information about Castro''s Ready services.'),('whatsapp_position','right')
 ON DUPLICATE KEY UPDATE setting_value=VALUES(setting_value);
