@@ -61,3 +61,11 @@ function gallery_fallback(int $index): string {
     ];
     return $images[$index % count($images)];
 }
+
+function draft_content(): array {$rows=db()->query('SELECT content_key,content_value FROM content_drafts')->fetchAll();$o=[];foreach($rows as $r)$o[$r['content_key']]=$r['content_value'];return $o;}
+function site_sections(): array {try{$rows=db()->query('SELECT section_key,label,sort_order,active FROM site_sections ORDER BY sort_order,section_key')->fetchAll();}catch(Throwable $e){return [];}$o=[];foreach($rows as $r)$o[$r['section_key']]=$r;return $o;}
+function section_enabled(string $key): bool {static $s=null;if($s===null)$s=site_sections();return !isset($s[$key])||(int)$s[$key]['active']===1;}
+function section_order(string $key,int $default=999): int {static $s=null;if($s===null)$s=site_sections();return isset($s[$key])?(int)$s[$key]['sort_order']:$default;}
+function log_activity(string $type,string $description,array $metadata=[]): void {try{$adminId=!empty($_SESSION['cr_admin_id'])?(int)$_SESSION['cr_admin_id']:null;$st=db()->prepare('INSERT INTO activity_log(admin_id,action_type,description,metadata_json) VALUES(?,?,?,?)');$st->execute([$adminId,$type,$description,$metadata?json_encode($metadata,JSON_UNESCAPED_UNICODE):null]);}catch(Throwable $e){}}
+function admin_notify(string $type,string $title,string $message,string $url=''): void {try{$st=db()->prepare('INSERT INTO admin_notifications(notification_type,title,message,action_url) VALUES(?,?,?,?)');$st->execute([$type,$title,$message,$url?:null]);}catch(Throwable $e){}}
+function media_add(string $path,string $title=''): void {try{$full=ROOT_DIR.'/'.$path;$mime=is_file($full)?(mime_content_type($full)?:''):'';$size=is_file($full)?filesize($full):0;$adminId=!empty($_SESSION['cr_admin_id'])?(int)$_SESSION['cr_admin_id']:null;$st=db()->prepare('INSERT INTO media_library(title,file_path,mime_type,file_size,uploaded_by) VALUES(?,?,?,?,?)');$st->execute([$title,$path,$mime,(int)$size,$adminId]);}catch(Throwable $e){}}

@@ -39,3 +39,20 @@ UPDATE 2026-08-27
 - API integrations now include API Type and Authentication Type. Run database-update.sql once on an existing installation.
 - First-time installer can optionally try to CREATE DATABASE if the MySQL account has permission; on typical cPanel hosting, create the DB/user first and leave that option off.
 - Email configurations include a saved-config test tool.
+
+
+CMS PRODUCTIVITY SUITE
+----------------------
+- Draft / Preview / Publish content workflow
+- Content version history and restore-to-draft
+- Section Manager with show/hide and drag ordering
+- Media Library
+- Action Center dashboard
+- Website Health
+- SEO Manager
+- Notifications + Activity Log
+- Backup & Restore
+- SweetAlert confirmation before logging out
+- Optional footer developer credit (disabled by default)
+
+For an existing installation, run database-update.sql once before opening these new modules.

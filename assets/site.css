@@ -139,3 +139,5 @@ footer{padding:52px 0;background:#172524;color:#e8efec}.footer-grid{display:grid
     border-color:#0b5f60!important;
   }
 }
+
+.developer-credit{max-width:1180px;margin:14px auto 0;padding:14px 20px 0;border-top:1px solid rgba(255,255,255,.14);text-align:center;font-size:12px;letter-spacing:.04em;opacity:.72}
