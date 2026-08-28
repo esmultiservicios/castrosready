@@ -46,3 +46,67 @@ footer{padding:52px 0;background:#172524;color:#e8efec}.footer-grid{display:grid
 .reveal.visible{opacity:1;transform:none}
 .admin-link{font-size:12px;color:#8c9693;margin-top:8px}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.reveal{opacity:1;transform:none;transition:none}}
+
+.public-upload{border:1.5px dashed #b8c5c0;border-radius:18px;padding:22px;text-align:center;background:#fbfcfb;cursor:pointer;outline:none;transition:border-color .2s,background .2s}.public-upload:focus,.public-upload.dragover{border-color:var(--teal);background:#f0f7f5}.public-upload input[type=file]{position:absolute;opacity:0;width:1px;height:1px;pointer-events:none}.public-upload-icon{width:48px;height:48px;border-radius:15px;background:#e8f3f0;color:var(--teal);display:grid;place-items:center;font-size:28px;margin:0 auto 9px}.public-upload strong,.public-upload span,.public-upload small{display:block}.public-upload span{font-size:13px;margin-top:4px}.public-upload small{color:#7a8784;margin-top:4px}.public-upload-preview{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:14px}.public-upload-item{position:relative;width:92px;height:76px;border-radius:11px;overflow:hidden;border:1px solid #dce4df;background:#fff}.public-upload-item img{width:100%;height:100%;object-fit:cover}.public-upload-item button{position:absolute;right:4px;top:4px;width:24px;height:24px;border:1px solid #dce4df;border-radius:50%;background:#fff;color:#8c2f34;cursor:pointer}.gallery-card{position:relative}.gallery-zoom{position:absolute;right:12px;top:12px;width:40px;height:40px;border-radius:12px;border:1px solid rgba(255,255,255,.62);background:rgba(255,255,255,.94);color:#103c39;font-size:22px;cursor:pointer;opacity:0;transition:opacity .2s,transform .2s}.gallery-card:hover .gallery-zoom,.gallery-zoom:focus{opacity:1}.gallery-zoom:hover{transform:translateY(-2px)}.site-lightbox{position:fixed;inset:0;z-index:90;background:rgba(10,22,21,.88);display:none;align-items:center;justify-content:center;padding:24px}.site-lightbox.open{display:flex}.site-lightbox figure{margin:0;max-width:min(1100px,96vw);text-align:center}.site-lightbox img{max-width:100%;max-height:82vh;border-radius:16px;object-fit:contain;background:#fff}.site-lightbox figcaption{color:#fff;font-weight:700;margin-top:10px}.site-lightbox>button{position:absolute;right:20px;top:18px;width:46px;height:46px;border:0;border-radius:50%;background:#fff;color:#103c39;font-size:28px;cursor:pointer}.floating-whatsapp{position:fixed;right:max(18px,env(safe-area-inset-right));bottom:max(18px,env(safe-area-inset-bottom));z-index:45;display:flex;align-items:center;gap:9px;padding:9px 14px 9px 9px;background:#fff;color:#173f3d;border:1px solid #d7e1dc;border-radius:999px;box-shadow:0 12px 34px rgba(16,60,57,.18);text-decoration:none;font:700 13px/1.2 Manrope,sans-serif}.floating-whatsapp.left{left:max(18px,env(safe-area-inset-left));right:auto}.floating-whatsapp span{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:#1f9d63;color:#fff;font-size:11px;letter-spacing:.04em}.floating-whatsapp:hover{transform:translateY(-2px)}@media(max-width:640px){.gallery-zoom{opacity:1}.floating-whatsapp{padding:7px}.floating-whatsapp b{display:none}.floating-whatsapp span{width:42px;height:42px}.public-upload{padding:18px 12px}.public-upload-item{width:76px;height:66px}}
+
+/* Premium contact refresh */
+.contact-section{position:relative;overflow:hidden;background:#fff;border-top:1px solid #edf1ef}.contact-section:before{content:"";position:absolute;left:0;top:0;width:8px;height:100%;background:var(--yellow)}
+.contact-intro{align-self:center}.contact-intro p{font-size:17px;max-width:470px}.contact-accent{display:flex;align-items:center;gap:10px;margin-top:28px;color:#53615f;font-size:13px}.contact-accent span{width:48px;height:4px;border-radius:999px;background:var(--yellow)}
+.contact-links{gap:16px}.contact-links .contact-card{position:relative;display:grid;grid-template-columns:48px minmax(0,1fr) 28px;align-items:center;gap:14px;min-height:142px;border:1px solid #dce4df;border-radius:22px;padding:20px;background:#f7f9f7;box-shadow:0 7px 24px rgba(16,60,57,.05);text-decoration:none;overflow:hidden;transition:transform .24s ease,box-shadow .24s ease,border-color .24s ease,background .24s ease}.contact-links .contact-card:before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:transparent;transition:.24s}.contact-links .contact-card:hover{background:#fff;border-color:#bdd2c9;transform:translateY(-5px);box-shadow:0 18px 42px rgba(16,60,57,.12)}.contact-links .contact-card:hover:before{background:var(--teal)}
+.contact-icon{width:48px;height:48px;border-radius:15px;background:#e7f2ef;color:var(--teal);display:grid;place-items:center;font-style:normal;font-weight:900;font-size:16px;transition:.24s transform,.24s background,.24s color}.contact-card:hover .contact-icon{transform:scale(1.05);background:var(--deep);color:#fff}.contact-links .contact-card span{margin:0}.contact-links .contact-card strong{margin:5px 0 0;font-size:16px;line-height:1.35}.contact-links .contact-card small{display:block;margin-top:5px;color:#7a8784;font-size:12px}.contact-arrow{font-size:20px;color:#8aa09b;transition:.24s transform,.24s color}.contact-card:hover .contact-arrow{transform:translateX(4px);color:var(--teal)}
+@media(max-width:640px){.contact-section:before{width:4px}.contact-links .contact-card{min-height:118px;grid-template-columns:44px minmax(0,1fr) 22px;padding:17px}.contact-icon{width:44px;height:44px}.contact-links .contact-card strong{font-size:15px}}
+
+
+/* Final CTA visibility: interactive controls are never plain white. */
+.btn-secondary{background:#e3f1ed!important;color:#0b5f60!important;border-color:#afd0c7!important}.btn-secondary:hover{background:#0f7777!important;color:#fff!important;border-color:#0f7777!important}
+.whatsapp-btn{background:#e4f3ee!important;color:#0b5f60!important;border-color:#afd0c7!important}.whatsapp-btn:hover{background:#0f7777!important;color:#fff!important}
+.public-upload-item button,.gallery-zoom,.site-lightbox>button{background:#0f7777!important;color:#fff!important;border-color:#0f7777!important}.public-upload-item button:hover,.gallery-zoom:hover,.site-lightbox>button:hover{background:#0b5f60!important}
+.floating-whatsapp{background:#103c39!important;color:#fff!important;border-color:#103c39!important}.floating-whatsapp:hover{background:#0b5f60!important}
+
+.menu-btn{background:#0f7777!important;color:#fff!important;border:1px solid #0f7777!important;width:46px;height:46px;border-radius:14px;align-items:center;justify-content:center;cursor:pointer}.menu-btn:hover{background:#0b5f60!important}.main-nav .nav-cta{background:#0f7777!important;color:#fff!important;border:1px solid #0f7777!important}.main-nav .nav-cta:hover{background:#0b5f60!important}
+
+/* Floating WhatsApp motion */
+.floating-whatsapp{
+  isolation:isolate;
+  will-change:transform;
+  animation:crWhatsappFloat 3.2s ease-in-out infinite;
+}
+.floating-whatsapp::before{
+  content:"";
+  position:absolute;
+  inset:-5px;
+  border:2px solid rgba(31,157,99,.28);
+  border-radius:999px;
+  z-index:-1;
+  pointer-events:none;
+  animation:crWhatsappPulse 2.4s ease-out infinite;
+}
+.floating-whatsapp span{
+  animation:crWhatsappIcon 2.6s ease-in-out infinite;
+}
+.floating-whatsapp:hover,.floating-whatsapp:focus-visible{
+  animation-play-state:paused;
+  transform:translateY(-3px) scale(1.02);
+}
+.floating-whatsapp:hover::before,.floating-whatsapp:focus-visible::before,
+.floating-whatsapp:hover span,.floating-whatsapp:focus-visible span{
+  animation-play-state:paused;
+}
+@keyframes crWhatsappFloat{
+  0%,100%{transform:translateY(0)}
+  50%{transform:translateY(-6px)}
+}
+@keyframes crWhatsappPulse{
+  0%{opacity:.72;transform:scale(.96)}
+  70%,100%{opacity:0;transform:scale(1.13)}
+}
+@keyframes crWhatsappIcon{
+  0%,100%{transform:rotate(0deg) scale(1)}
+  45%{transform:rotate(0deg) scale(1)}
+  52%{transform:rotate(-6deg) scale(1.05)}
+  60%{transform:rotate(6deg) scale(1.05)}
+  68%{transform:rotate(0deg) scale(1)}
+}
+@media (prefers-reduced-motion:reduce){
+  .floating-whatsapp,.floating-whatsapp::before,.floating-whatsapp span{animation:none!important}
+}

@@ -1,40 +1,9 @@
-<?php require __DIR__.'/bootstrap.php'; require_login();
-$counts=[
- 'services'=>(int)db()->query('SELECT COUNT(*) FROM services WHERE active=1')->fetchColumn(),
- 'gallery'=>(int)db()->query('SELECT COUNT(*) FROM gallery WHERE active=1')->fetchColumn(),
- 'new'=>(int)db()->query("SELECT COUNT(*) FROM estimate_requests WHERE status='new'")->fetchColumn(),
- 'total'=>(int)db()->query('SELECT COUNT(*) FROM estimate_requests')->fetchColumn(),
-];
-$recent=db()->query('SELECT id,full_name,service_needed,status,created_at FROM estimate_requests ORDER BY id DESC LIMIT 6')->fetchAll();
-$pageTitle="Dashboard — Castro's Ready";$active='dashboard'; require __DIR__.'/_header.php';?>
-<div class="page-heading dashboard-heading">
-  <div><p class="eyebrow">DASHBOARD</p><h1>Website administration</h1><p class="muted">Everything needed to manage Castro's Ready without touching code.</p></div>
-  <a class="button" href="content.php">Edit website content</a>
-</div>
-
-<div class="stat-grid">
-  <div class="stat"><span>Active services</span><strong><?=$counts['services']?></strong><small>Published on the site</small></div>
-  <div class="stat"><span>Gallery items</span><strong><?=$counts['gallery']?></strong><small>Active project photos</small></div>
-  <div class="stat"><span>New estimates</span><strong><?=$counts['new']?></strong><small>Need your attention</small></div>
-  <div class="stat"><span>Total estimates</span><strong><?=$counts['total']?></strong><small>Requests received</small></div>
-</div>
-
-<section class="dashboard-section">
-  <div class="section-heading"><div><p class="eyebrow">CONTENT MANAGER</p><h2>Manage the landing page</h2></div><p>Choose the part of the website you want to update.</p></div>
-  <div class="manage-grid">
-    <a class="manage-card" href="content.php"><span class="manage-icon">✏️</span><div><strong>Page sections</strong><small>Hero, About, Mission, Vision, Estimate and Contact.</small></div><span class="manage-arrow">→</span></a>
-    <a class="manage-card" href="services.php"><span class="manage-icon">🛠️</span><div><strong>Services</strong><small>Add, edit, order or hide services.</small></div><span class="manage-arrow">→</span></a>
-    <a class="manage-card" href="gallery.php"><span class="manage-icon">🖼️</span><div><strong>Gallery</strong><small>Upload and manage project images.</small></div><span class="manage-arrow">→</span></a>
-    <a class="manage-card" href="areas.php"><span class="manage-icon">📍</span><div><strong>Service areas</strong><small>Manage cities, ZIP codes and coverage.</small></div><span class="manage-arrow">→</span></a>
-    <a class="manage-card" href="tips.php"><span class="manage-icon">💡</span><div><strong>Home tips</strong><small>Manage educational content and links.</small></div><span class="manage-arrow">→</span></a>
-    <a class="manage-card" href="settings.php"><span class="manage-icon">⚙️</span><div><strong>Contact & social</strong><small>Phone, email, hours and social networks.</small></div><span class="manage-arrow">→</span></a>
-  </div>
-</section>
-
-<section class="dashboard-section">
-  <div class="section-heading"><div><p class="eyebrow">CUSTOMER REQUESTS</p><h2>Recent free estimates</h2></div><a class="text-link" href="estimates.php">View all requests →</a></div>
-  <?php if(!$recent):?><div class="empty-state"><span>📭</span><strong>No requests yet</strong><p>New estimate requests will appear here automatically.</p></div><?php else:?><div class="request-grid"><?php foreach($recent as $r):?><article class="request-card"><div class="request-top"><div><strong><?=h($r['full_name'])?></strong><small><?=h($r['created_at'])?></small></div><span class="badge <?=h($r['status'])?>"><?=h($r['status'])?></span></div><p><?=h($r['service_needed'] ?: 'General project')?></p><a href="estimates.php">Open request →</a></article><?php endforeach;?></div><?php endif;?>
-</section>
-
-<section class="handoff-card"><div><span class="manage-icon">🔐</span><div><strong>Preparing the site for client handoff?</strong><p>You can securely reset administrator access without deleting any website content.</p></div></div><a class="button secondary" href="account.php">Administrator access</a></section>
+<?php require __DIR__.'/bootstrap.php';require_login();$pdo=db();
+$counts=['services'=>(int)$pdo->query('SELECT COUNT(*) FROM services WHERE active=1')->fetchColumn(),'gallery'=>(int)$pdo->query('SELECT COUNT(*) FROM gallery WHERE active=1')->fetchColumn(),'new'=>(int)$pdo->query("SELECT COUNT(*) FROM estimate_requests WHERE status='new'")->fetchColumn(),'total'=>(int)$pdo->query('SELECT COUNT(*) FROM estimate_requests')->fetchColumn()];$recent=$pdo->query('SELECT id,full_name,service_needed,status,created_at FROM estimate_requests ORDER BY id DESC LIMIT 6')->fetchAll();$pageTitle='Dashboard';$active='dashboard';require __DIR__.'/_header.php';?>
+<div class="page-heading animate-in"><div><p class="eyebrow">DASHBOARD</p><h1>Website administration</h1><p class="muted">A focused workspace to manage the Castro’s Ready website, customer requests and system settings without touching code.</p></div><a class="button" href="content.php"><?=icon('edit')?>Edit website content</a></div>
+<div class="stat-grid"><?php foreach([['Active services',$counts['services'],'Published on the site',''],['Gallery items',$counts['gallery'],'Project images',''],['New estimates',$counts['new'],'Need attention','warn'],['Total estimates',$counts['total'],'All requests','']] as $s):?><article class="stat animate-in <?=$s[3]?>"><span><?=h($s[0])?></span><strong data-stat="<?=$s[1]?>"><?=$s[1]?></strong><small><?=h($s[2])?></small></article><?php endforeach;?></div>
+<section class="dashboard-section"><div class="section-heading"><div><p class="eyebrow">CONTENT MANAGER</p><h2>Manage the landing page</h2></div><p>Choose what you want to update.</p></div><div class="manage-grid">
+<?php $cards=[['content.php','edit','Page sections','Hero, About, Mission, Vision, Estimate and Contact.'],['services.php','tools','Services','Add, edit, order or hide services.'],['gallery.php','image','Gallery','Upload, preview and manage project images.'],['areas.php','pin','Service areas','Manage cities, ZIP codes and coverage.'],['tips.php','bulb','Home tips','Manage educational content and links.'],['settings.php','gear','Brand & site settings','Admin identity, contact, WhatsApp and maintenance.'],['email.php','mail','Email','Configure SMTP or Microsoft Graph.'],['integrations.php','api','Integrations & APIs','Prepare external service and payment providers.']];foreach($cards as $c):?><a class="manage-card animate-in" href="<?=$c[0]?>"><span class="manage-icon"><?=icon($c[1])?></span><div><strong><?=h($c[2])?></strong><small><?=h($c[3])?></small></div><span class="manage-arrow">→</span></a><?php endforeach;?></div></section>
+<section class="dashboard-section"><div class="section-heading"><div><p class="eyebrow">CUSTOMER REQUESTS</p><h2>Recent free estimates</h2></div><a class="button secondary small" href="estimates.php">View all requests</a></div><?php if(!$recent):?><div class="empty-state"><strong>No requests yet</strong><p>New estimate requests will appear here automatically.</p></div><?php else:?><div class="request-grid"><?php foreach($recent as $r):?><article class="request-card animate-in"><div class="request-top"><div><strong><?=h($r['full_name']?:'Website visitor')?></strong><small><?=h($r['created_at'])?></small></div><span class="badge <?=h($r['status'])?>"><?=h($r['status'])?></span></div><p><?=h($r['service_needed']?:'General project')?></p><a href="estimates.php?view=<?=$r['id']?>">Open request →</a></article><?php endforeach;?></div><?php endif;?></section>
+<section class="handoff-card animate-in"><div><span class="manage-icon"><?=icon('user')?></span><div><strong>Preparing the website for client handoff?</strong><p>Reset administrator ownership from Profile & Security without deleting website content.</p></div></div><a class="button secondary" href="profile.php#handoff">Profile & security</a></section>
 <?php require __DIR__.'/_footer.php';

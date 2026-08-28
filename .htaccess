@@ -1,5 +1,5 @@
 Options -Indexes
 DirectoryIndex index.php
-<FilesMatch "^(database\.sql|README\.txt)$">
+<FilesMatch "^(database\.sql|database-update\.sql|README\.txt|\.gitignore)$">
   Require all denied
 </FilesMatch>

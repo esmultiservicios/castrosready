@@ -16,10 +16,10 @@ if($_SERVER['REQUEST_METHOD']==='POST'){verify_csrf();$st=db()->prepare('INSERT 
 $content=site_content();$pageTitle='Page Content';$active='content';require __DIR__.'/_header.php';?>
 <div class="page-heading"><div><p class="eyebrow">PAGE CONTENT</p><h1>Edit landing page sections</h1><p class="muted">Content is organized the same way visitors see it on the public landing page.</p></div><a class="button secondary" href="../" target="_blank">Preview website</a></div>
 <form method="post" class="cms-form"><input type="hidden" name="csrf" value="<?=h(csrf_token())?>">
-  <div class="section-editor-grid">
+  <div class="content-grid">
   <?php foreach($groups as $group):?>
-    <section class="panel section-editor">
-      <div class="panel-heading"><div class="panel-icon"><?=$group['icon']?></div><div><h2><?=h($group['title'])?></h2><p><?=h($group['description'])?></p></div></div>
+    <section class="content-card animate-in">
+      <header><div class="panel-icon"><?=$group['icon']?></div><div><h2><?=h($group['title'])?></h2><p><?=h($group['description'])?></p></div></header>
       <div class="field-stack">
       <?php foreach($group['fields'] as $k=>$meta): $label=$meta[0]; $type=$meta[1]; ?>
         <label><?=h($label)?><?php if($type==='textarea'):?><textarea name="<?=h($k)?>"><?=h($content[$k]??'')?></textarea><?php else:?><input name="<?=h($k)?>" value="<?=h($content[$k]??'')?>"><?php endif;?></label>
