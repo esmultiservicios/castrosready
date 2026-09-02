@@ -11,6 +11,10 @@ try {
     $settings=settings();
     $services=db()->query('SELECT * FROM services WHERE active=1 ORDER BY sort_order,id')->fetchAll();
     $gallery=db()->query('SELECT * FROM gallery WHERE active=1 ORDER BY sort_order,id')->fetchAll();
+    $videos=[];
+    try { $videos=db()->query('SELECT * FROM videos WHERE active=1 ORDER BY sort_order,id')->fetchAll(); } catch(Throwable $ignored) { $videos=[]; }
+    $aboutArtworks=[];
+    try { $aboutArtworks=db()->query('SELECT * FROM about_artworks WHERE active=1 ORDER BY sort_order,id')->fetchAll(); } catch(Throwable $ignored) { $aboutArtworks=[]; }
     $areas=db()->query('SELECT * FROM service_areas WHERE active=1 ORDER BY sort_order,id')->fetchAll();
     $tips=db()->query('SELECT * FROM tips WHERE active=1 ORDER BY sort_order,id LIMIT 5')->fetchAll();
 } catch(Throwable $e) {
@@ -55,6 +59,19 @@ if($draftPreview) {
 function c(string $k,string $f=''):string {
     global $content;
     return $content[$k]??$f;
+}
+function public_video_embed(array $video): string {
+    $type=(string)($video['video_type']??'');
+    $url=trim((string)($video['video_url']??''));
+    if($type==='youtube') {
+        if(preg_match('~(?:youtu\.be/|youtube\.com/(?:watch\?v=|embed/|shorts/))([A-Za-z0-9_-]{6,})~',$url,$m)) {
+            return 'https://www.youtube-nocookie.com/embed/'.rawurlencode($m[1]).'?rel=0';
+        }
+    }
+    if($type==='vimeo' && preg_match('~vimeo\.com/(?:video/)?([0-9]+)~',$url,$m)) {
+        return 'https://player.vimeo.com/video/'.rawurlencode($m[1]);
+    }
+    return '';
 }
 $phone=$settings['phone']??'+1 202-644-2717';
 $digits=preg_replace('/\D+/','',$settings['phone_digits']??'12026442717');
@@ -234,10 +251,11 @@ $renderBanner=function() use($bannerEnabled,$bannerType,$bannerImage,$bannerVide
     echo '</div></section>';
 }
 ;
-$renderNav=function() use($navBehavior,$navLogo,$navAlign) {
+$renderNav=function() use($navBehavior,$navLogo,$navAlign,$videos) {
     echo '<header class="site-header nav-'.h($navBehavior).' '.(!$navLogo?'no-brand ':'').'align-'.h($navAlign).'" id="top"><div class="container nav-wrap">';
     if($navLogo)echo '<a class="brand" href="#home" data-scroll><img src="assets/logo.jpg" alt="Castro\'s Ready logo"><span class="brand-copy"><strong>CASTRO\'S READY</strong><small>PAINTING · REPAIRS · MAINTENANCE</small></span></a>';
-    echo '<button class="menu-btn" type="button" aria-label="Open menu" aria-expanded="false">☰</button><nav class="main-nav"><a href="#home" data-scroll>Home</a><a href="#about" data-scroll>About</a><a href="#services" data-scroll>Services</a><a href="#gallery" data-scroll>Gallery</a><a href="#areas" data-scroll>Service Areas</a><a href="#contact" data-scroll>Contact</a><a class="nav-cta" href="#estimate" data-scroll>Free Estimate</a></nav></div><div class="scroll-progress"><span></span></div></header>';
+    $videoLink=!empty($videos)?'<a href="#videos" data-scroll>Videos</a>':'';
+    echo '<button class="menu-btn" type="button" aria-label="Open menu" aria-expanded="false">☰</button><nav class="main-nav"><a href="#home" data-scroll>Home</a><a href="#about" data-scroll>About</a><a href="#services" data-scroll>Services</a>'.$videoLink.'<a href="#gallery" data-scroll>Gallery</a><a href="#areas" data-scroll>Service Areas</a><a href="#contact" data-scroll>Contact</a><a class="nav-cta" href="#estimate" data-scroll>Free Estimate</a></nav></div><div class="scroll-progress"><span></span></div></header>';
 }
 ;
 ?>
@@ -403,20 +421,22 @@ if(section_enabled('about')):
 <p data-content-key="about_text_2"><?=h(c('about_text_2'))?>
 
 </p>
-<div class="mission-grid">
-<article>
-<span>Mission</span>
-<p data-content-key="mission"><?=h(c('mission'))?>
-
-</p>
+<?php if(!empty($aboutArtworks)): ?>
+<div class="mission-art-grid about-artwork-gallery <?=count($aboutArtworks)===1?'single-artwork':''?>">
+<?php foreach($aboutArtworks as $artwork): ?>
+<article class="mission-art-card">
+<img src="<?=h($artwork['image_path'])?>" alt="<?=h(trim((string)$artwork['title'])!==''?$artwork['title'].' artwork':'Castro\'s Ready Mission and Vision artwork')?>" loading="lazy">
 </article>
-<article>
-<span>Vision</span>
-<p data-content-key="vision"><?=h(c('vision'))?>
-
-</p>
-</article>
+<?php endforeach; ?>
 </div>
+<p class="visually-hidden" data-content-key="mission"><?=h(c('mission'))?></p>
+<p class="visually-hidden" data-content-key="vision"><?=h(c('vision'))?></p>
+<?php else: ?>
+<div class="mission-grid mission-text-fallback">
+<article><span>Mission</span><p data-content-key="mission"><?=h(c('mission'))?></p></article>
+<article><span>Vision</span><p data-content-key="vision"><?=h(c('vision'))?></p></article>
+</div>
+<?php endif; ?>
 <div class="values">
 <span>Integrity</span>
 <span>Respect</span>
@@ -452,8 +472,8 @@ foreach($services as $i=>$s):
 
 >
 <summary>
-<span class="service-icon"><?=str_pad((string)($i+1),2,'0',STR_PAD_LEFT)?>
-
+<span class="service-icon service-badge-wrap">
+<?php if(!empty($s['icon_path'])): ?><img src="<?=h($s['icon_path'])?>" alt="<?=h($s['title'])?> service badge" loading="lazy"><?php else: ?><?=str_pad((string)($i+1),2,'0',STR_PAD_LEFT)?><?php endif; ?>
 </span>
 <strong><?=h($s['title'])?>
 
@@ -475,6 +495,33 @@ endforeach;
 <?php
 endif;
 ?>
+<?php
+if(section_enabled('videos')&&!empty($videos)):
+?>
+<section class="section video-section section-anchor" id="videos" style="order:<?=section_order('videos')?>">
+<div class="container">
+<div class="section-head reveal">
+<div><span class="kicker">SEE OUR WORK</span><h2>Watch the craftsmanship behind the finished result.</h2></div>
+<p>Real project videos, presented in a clean and consistent showcase.</p>
+</div>
+<div class="video-grid reveal">
+<?php foreach($videos as $video): $embed=public_video_embed($video); ?>
+<article class="video-card">
+<div class="video-frame">
+<?php if($video['video_type']==='upload'&&!empty($video['file_path'])): ?>
+<video controls preload="metadata" playsinline <?php if(!empty($video['poster_path'])): ?>poster="<?=h($video['poster_path'])?>"<?php endif; ?>><source src="<?=h($video['file_path'])?>"></video>
+<?php elseif($embed!==''): ?>
+<iframe src="<?=h($embed)?>" title="<?=h($video['title'])?>" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+<?php endif; ?>
+</div>
+<div class="video-card-copy"><strong><?=h($video['title'])?></strong><?php if(trim((string)$video['description'])!==''): ?><p><?=h($video['description'])?></p><?php endif; ?></div>
+</article>
+<?php endforeach; ?>
+</div>
+</div>
+</section>
+<?php endif; ?>
+
 <?php
 if(section_enabled('gallery')):
 ?>
@@ -768,6 +815,7 @@ endif;
 <strong>Explore</strong>
 <a href="#about" data-scroll>About</a>
 <a href="#services" data-scroll>Services</a>
+<?php if(!empty($videos)): ?><a href="#videos" data-scroll>Videos</a><?php endif; ?>
 <a href="#gallery" data-scroll>Gallery</a>
 </div>
 <div>

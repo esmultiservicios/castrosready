@@ -1,3 +1,11 @@
+-- ============================================================
+-- CASTRO'S READY CMS - COMPLETE FRESH INSTALL DATABASE
+-- Current schema includes: core CMS, roles/security, media,
+-- service badges, videos, Mission/Vision artwork gallery and
+-- the approved initial YouTube videos.
+-- Use ONLY for a new/fresh installation.
+-- ============================================================
+
 SET NAMES utf8mb4;
 SET FOREIGN_KEY_CHECKS=0;
 
@@ -66,10 +74,40 @@ CREATE TABLE IF NOT EXISTS services (
   id INT UNSIGNED NOT NULL AUTO_INCREMENT,
   title VARCHAR(150) NOT NULL,
   details TEXT NOT NULL,
+  icon_path VARCHAR(500) NULL,
   sort_order INT NOT NULL DEFAULT 0,
   active TINYINT(1) NOT NULL DEFAULT 1,
   PRIMARY KEY (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS videos (
+  id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  title VARCHAR(180) NOT NULL,
+  description TEXT NULL,
+  video_type ENUM('youtube','vimeo','upload') NOT NULL DEFAULT 'youtube',
+  video_url VARCHAR(700) NULL,
+  file_path VARCHAR(500) NULL,
+  poster_path VARCHAR(500) NULL,
+  sort_order INT NOT NULL DEFAULT 0,
+  active TINYINT(1) NOT NULL DEFAULT 1,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id), KEY idx_videos_active_order (active,sort_order,id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
+CREATE TABLE IF NOT EXISTS about_artworks (
+  id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  title VARCHAR(180) NULL,
+  image_path VARCHAR(500) NOT NULL,
+  sort_order INT NOT NULL DEFAULT 0,
+  active TINYINT(1) NOT NULL DEFAULT 1,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  KEY idx_about_artworks_active_order (active,sort_order,id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 
 CREATE TABLE IF NOT EXISTS gallery (
   id INT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -234,6 +272,16 @@ INSERT INTO services(title,details,sort_order,active)
 SELECT 'Pressure Washing','Houses · Decks · Driveways · Patios · Fences',80,1
 WHERE NOT EXISTS (SELECT 1 FROM services WHERE title='Pressure Washing');
 
+
+UPDATE services SET icon_path='assets/service-badges/painting.png' WHERE title='Painting';
+UPDATE services SET icon_path='assets/service-badges/remodeling.png' WHERE title='Remodeling';
+UPDATE services SET icon_path='assets/service-badges/flooring.png' WHERE title='Flooring';
+UPDATE services SET icon_path='assets/service-badges/decks-outdoor-living.png' WHERE title='Decks & Outdoor Living';
+UPDATE services SET icon_path='assets/service-badges/siding-carpentry.png' WHERE title='Siding & Carpentry';
+UPDATE services SET icon_path='assets/service-badges/drywall-services.png' WHERE title='Drywall Services';
+UPDATE services SET icon_path='assets/service-badges/concrete-services.png' WHERE title='Concrete Services';
+UPDATE services SET icon_path='assets/service-badges/pressure-washing.png' WHERE title='Pressure Washing';
+
 INSERT INTO gallery(title,image_path,sort_order,active)
 SELECT 'Before & After','',10,1 WHERE NOT EXISTS (SELECT 1 FROM gallery WHERE title='Before & After');
 INSERT INTO gallery(title,image_path,sort_order,active)
@@ -324,12 +372,27 @@ CREATE TABLE IF NOT EXISTS site_backups (
   PRIMARY KEY (id), KEY idx_backups_created (created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 INSERT INTO site_sections(section_key,label,sort_order,active) VALUES
-('home','Home / Hero',10,1),('intro','What We Do',20,1),('about','About Us',30,1),('services','Services',40,1),('gallery','Gallery',50,1),('areas','Service Areas',60,1),('tips','Home Tips',70,1),('estimate','Free Estimate',80,1),('contact','Contact',90,1)
+('home','Home / Hero',10,1),('intro','What We Do',20,1),('about','About Us',30,1),('services','Services',40,1),('videos','Videos',50,1),('gallery','Gallery',60,1),('areas','Service Areas',70,1),('tips','Home Tips',80,1),('estimate','Free Estimate',90,1),('contact','Contact',100,1)
 ON DUPLICATE KEY UPDATE label=VALUES(label);
+INSERT INTO about_artworks(title,image_path,sort_order,active)
+SELECT 'Mission','assets/about/mission.png',10,1
+WHERE NOT EXISTS (SELECT 1 FROM about_artworks WHERE image_path='assets/about/mission.png');
+INSERT INTO about_artworks(title,image_path,sort_order,active)
+SELECT 'Vision','assets/about/vision.png',20,1
+WHERE NOT EXISTS (SELECT 1 FROM about_artworks WHERE image_path='assets/about/vision.png');
+
+INSERT INTO videos(title,description,video_type,video_url,file_path,poster_path,sort_order,active)
+SELECT 'Project Showcase','', 'youtube','https://youtu.be/01nlW2CAMgA?si=2RbdC7qcg1i3etdD',NULL,NULL,10,1
+WHERE NOT EXISTS (SELECT 1 FROM videos WHERE video_url LIKE '%01nlW2CAMgA%');
+INSERT INTO videos(title,description,video_type,video_url,file_path,poster_path,sort_order,active)
+SELECT 'Project Highlight','', 'youtube','https://youtube.com/shorts/rIuzhI1PAL0?si=tn8Ny8yd7EpI2AmF',NULL,NULL,20,1
+WHERE NOT EXISTS (SELECT 1 FROM videos WHERE video_url LIKE '%rIuzhI1PAL0%');
+
 INSERT INTO settings(setting_key,setting_value) VALUES
 ('seo_title','Castro''s Ready | Home Improvement'),
 ('seo_description','Castro''s Ready — professional painting, remodeling, flooring, decks, carpentry, concrete, drywall and pressure washing.'),
 ('seo_social_image',''),('seo_robots','index,follow'),
+('mission_artwork_path','assets/about/mission.png'),('vision_artwork_path','assets/about/vision.png'),
 ('developer_credit_enabled','0'),('developer_credit_text','Website by ES MULTISERVICIOS')
 ON DUPLICATE KEY UPDATE setting_value=setting_value;
 
@@ -430,6 +493,7 @@ INSERT INTO admin_permissions(permission_key,permission_name,permission_group) V
 ('media.manage','Manage Media Library','Content'),
 ('services.manage','Manage services','Content'),
 ('gallery.manage','Manage gallery','Content'),
+('videos.manage','Manage website videos','Content'),
 ('areas.manage','Manage service areas','Content'),
 ('tips.manage','Manage home tips','Content'),
 ('estimates.view','View estimate requests','Business'),
@@ -457,6 +521,7 @@ INSERT IGNORE INTO admin_role_permissions(role_id,permission_id) SELECT r.id,p.i
 INSERT IGNORE INTO admin_role_permissions(role_id,permission_id) SELECT r.id,p.id FROM admin_roles r JOIN admin_permissions p ON p.permission_key='media.manage' WHERE r.role_key='administrator';
 INSERT IGNORE INTO admin_role_permissions(role_id,permission_id) SELECT r.id,p.id FROM admin_roles r JOIN admin_permissions p ON p.permission_key='services.manage' WHERE r.role_key='administrator';
 INSERT IGNORE INTO admin_role_permissions(role_id,permission_id) SELECT r.id,p.id FROM admin_roles r JOIN admin_permissions p ON p.permission_key='gallery.manage' WHERE r.role_key='administrator';
+INSERT IGNORE INTO admin_role_permissions(role_id,permission_id) SELECT r.id,p.id FROM admin_roles r JOIN admin_permissions p ON p.permission_key='videos.manage' WHERE r.role_key='administrator';
 INSERT IGNORE INTO admin_role_permissions(role_id,permission_id) SELECT r.id,p.id FROM admin_roles r JOIN admin_permissions p ON p.permission_key='areas.manage' WHERE r.role_key='administrator';
 INSERT IGNORE INTO admin_role_permissions(role_id,permission_id) SELECT r.id,p.id FROM admin_roles r JOIN admin_permissions p ON p.permission_key='tips.manage' WHERE r.role_key='administrator';
 INSERT IGNORE INTO admin_role_permissions(role_id,permission_id) SELECT r.id,p.id FROM admin_roles r JOIN admin_permissions p ON p.permission_key='estimates.view' WHERE r.role_key='administrator';
@@ -479,6 +544,7 @@ INSERT IGNORE INTO admin_role_permissions(role_id,permission_id) SELECT r.id,p.i
 INSERT IGNORE INTO admin_role_permissions(role_id,permission_id) SELECT r.id,p.id FROM admin_roles r JOIN admin_permissions p ON p.permission_key='media.manage' WHERE r.role_key='editor';
 INSERT IGNORE INTO admin_role_permissions(role_id,permission_id) SELECT r.id,p.id FROM admin_roles r JOIN admin_permissions p ON p.permission_key='services.manage' WHERE r.role_key='editor';
 INSERT IGNORE INTO admin_role_permissions(role_id,permission_id) SELECT r.id,p.id FROM admin_roles r JOIN admin_permissions p ON p.permission_key='gallery.manage' WHERE r.role_key='editor';
+INSERT IGNORE INTO admin_role_permissions(role_id,permission_id) SELECT r.id,p.id FROM admin_roles r JOIN admin_permissions p ON p.permission_key='videos.manage' WHERE r.role_key='editor';
 INSERT IGNORE INTO admin_role_permissions(role_id,permission_id) SELECT r.id,p.id FROM admin_roles r JOIN admin_permissions p ON p.permission_key='areas.manage' WHERE r.role_key='editor';
 INSERT IGNORE INTO admin_role_permissions(role_id,permission_id) SELECT r.id,p.id FROM admin_roles r JOIN admin_permissions p ON p.permission_key='tips.manage' WHERE r.role_key='editor';
 INSERT IGNORE INTO admin_role_permissions(role_id,permission_id) SELECT r.id,p.id FROM admin_roles r JOIN admin_permissions p ON p.permission_key='seo.manage' WHERE r.role_key='editor';

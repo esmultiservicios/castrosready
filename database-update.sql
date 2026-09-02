@@ -1,4 +1,9 @@
--- CASTRO'S READY CMS - PRODUCTIVITY SUITE UPDATE
+-- CASTRO'S READY CMS - CUMULATIVE DATABASE UPDATE (SAFE TO RE-RUN)
+-- Designed for the MariaDB/current-MySQL environments used by the CMS hosting.
+-- CREATE TABLE IF NOT EXISTS, ADD COLUMN/INDEX IF NOT EXISTS, INSERT IGNORE
+-- and NOT EXISTS guards prevent duplicate schema/content when re-run.
+-- Do NOT use database.sql on an existing production database.
+
 SET NAMES utf8mb4;
 
 CREATE TABLE IF NOT EXISTS content_drafts (
@@ -234,25 +239,108 @@ INSERT IGNORE INTO admin_role_permissions(role_id,permission_id) SELECT r.id,p.i
 INSERT IGNORE INTO admin_role_permissions(role_id,permission_id) SELECT r.id,p.id FROM admin_roles r CROSS JOIN admin_permissions p WHERE r.role_key='owner';
 
 ALTER TABLE admin_users
-  ADD COLUMN role_id INT UNSIGNED NULL AFTER password_hash,
-  ADD COLUMN active TINYINT(1) NOT NULL DEFAULT 1 AFTER role_id,
-  ADD COLUMN created_by INT UNSIGNED NULL AFTER active,
-  ADD COLUMN last_login_at DATETIME NULL AFTER created_by,
-  ADD COLUMN last_login_ip VARCHAR(64) NULL AFTER last_login_at,
-  ADD COLUMN last_user_agent VARCHAR(500) NULL AFTER last_login_ip,
-  ADD COLUMN two_factor_secret_enc TEXT NULL AFTER last_user_agent,
-  ADD COLUMN two_factor_enabled TINYINT(1) NOT NULL DEFAULT 0 AFTER two_factor_secret_enc,
-  ADD KEY idx_admin_role_active(role_id,active);
+  ADD COLUMN IF NOT EXISTS role_id INT UNSIGNED NULL AFTER password_hash,
+  ADD COLUMN IF NOT EXISTS active TINYINT(1) NOT NULL DEFAULT 1 AFTER role_id,
+  ADD COLUMN IF NOT EXISTS created_by INT UNSIGNED NULL AFTER active,
+  ADD COLUMN IF NOT EXISTS last_login_at DATETIME NULL AFTER created_by,
+  ADD COLUMN IF NOT EXISTS last_login_ip VARCHAR(64) NULL AFTER last_login_at,
+  ADD COLUMN IF NOT EXISTS last_user_agent VARCHAR(500) NULL AFTER last_login_ip,
+  ADD COLUMN IF NOT EXISTS two_factor_secret_enc TEXT NULL AFTER last_user_agent,
+  ADD COLUMN IF NOT EXISTS two_factor_enabled TINYINT(1) NOT NULL DEFAULT 0 AFTER two_factor_secret_enc,
+  ADD INDEX IF NOT EXISTS idx_admin_role_active(role_id,active);
 
 ALTER TABLE estimate_requests
   MODIFY COLUMN status ENUM('new','contacted','in_progress','won','lost','closed') NOT NULL DEFAULT 'new',
-  ADD COLUMN assigned_to INT UNSIGNED NULL AFTER status,
-  ADD COLUMN priority ENUM('low','normal','high','urgent') NOT NULL DEFAULT 'normal' AFTER assigned_to,
-  ADD COLUMN follow_up_date DATE NULL AFTER priority,
-  ADD COLUMN internal_notes TEXT NULL AFTER follow_up_date,
-  ADD COLUMN updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP AFTER created_at,
-  ADD KEY idx_estimate_assigned(assigned_to,status,follow_up_date);
+  ADD COLUMN IF NOT EXISTS assigned_to INT UNSIGNED NULL AFTER status,
+  ADD COLUMN IF NOT EXISTS priority ENUM('low','normal','high','urgent') NOT NULL DEFAULT 'normal' AFTER assigned_to,
+  ADD COLUMN IF NOT EXISTS follow_up_date DATE NULL AFTER priority,
+  ADD COLUMN IF NOT EXISTS internal_notes TEXT NULL AFTER follow_up_date,
+  ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP AFTER created_at,
+  ADD INDEX IF NOT EXISTS idx_estimate_assigned(assigned_to,status,follow_up_date);
 
 UPDATE admin_users
 SET role_id=(SELECT id FROM admin_roles WHERE role_key='owner' LIMIT 1)
 WHERE role_id IS NULL;
+
+
+-- ============================================================
+-- CLIENT CONTENT UPDATE: SERVICE BADGES + MISSION/VISION ART + VIDEOS
+-- Safe to re-run: existing structures/content are preserved and duplicate seeds are skipped.
+-- ============================================================
+ALTER TABLE services ADD COLUMN IF NOT EXISTS icon_path VARCHAR(500) NULL AFTER details;
+
+CREATE TABLE IF NOT EXISTS videos (
+  id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  title VARCHAR(180) NOT NULL,
+  description TEXT NULL,
+  video_type ENUM('youtube','vimeo','upload') NOT NULL DEFAULT 'youtube',
+  video_url VARCHAR(700) NULL,
+  file_path VARCHAR(500) NULL,
+  poster_path VARCHAR(500) NULL,
+  sort_order INT NOT NULL DEFAULT 0,
+  active TINYINT(1) NOT NULL DEFAULT 1,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  KEY idx_videos_active_order (active,sort_order,id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+INSERT INTO site_sections(section_key,label,sort_order,active) VALUES ('videos','Videos',50,1)
+ON DUPLICATE KEY UPDATE label=VALUES(label);
+UPDATE site_sections SET sort_order=60 WHERE section_key='gallery' AND sort_order=50;
+UPDATE site_sections SET sort_order=70 WHERE section_key='areas' AND sort_order=60;
+UPDATE site_sections SET sort_order=80 WHERE section_key='tips' AND sort_order=70;
+UPDATE site_sections SET sort_order=90 WHERE section_key='estimate' AND sort_order=80;
+UPDATE site_sections SET sort_order=100 WHERE section_key='contact' AND sort_order=90;
+
+INSERT INTO settings(setting_key,setting_value) VALUES
+('mission_artwork_path','assets/about/mission.png'),
+('vision_artwork_path','assets/about/vision.png')
+ON DUPLICATE KEY UPDATE setting_value=setting_value;
+
+INSERT INTO admin_permissions(permission_key,permission_name,permission_group) VALUES
+('videos.manage','Manage website videos','Content')
+ON DUPLICATE KEY UPDATE permission_name=VALUES(permission_name),permission_group=VALUES(permission_group);
+
+INSERT IGNORE INTO admin_role_permissions(role_id,permission_id)
+SELECT r.id,p.id FROM admin_roles r JOIN admin_permissions p ON p.permission_key='videos.manage'
+WHERE r.role_key IN ('administrator','editor');
+
+UPDATE services SET icon_path='assets/service-badges/painting.png' WHERE title='Painting';
+UPDATE services SET icon_path='assets/service-badges/remodeling.png' WHERE title='Remodeling';
+UPDATE services SET icon_path='assets/service-badges/flooring.png' WHERE title='Flooring';
+UPDATE services SET icon_path='assets/service-badges/decks-outdoor-living.png' WHERE title='Decks & Outdoor Living';
+UPDATE services SET icon_path='assets/service-badges/siding-carpentry.png' WHERE title='Siding & Carpentry';
+UPDATE services SET icon_path='assets/service-badges/drywall-services.png' WHERE title IN ('Drywall','Drywall Services');
+UPDATE services SET icon_path='assets/service-badges/concrete-services.png' WHERE title IN ('Concrete','Concrete Services');
+UPDATE services SET icon_path='assets/service-badges/pressure-washing.png' WHERE title='Pressure Washing';
+
+
+-- ============================================================
+-- CLIENT MEDIA FLEXIBILITY: ABOUT ARTWORK GALLERY + INITIAL VIDEOS
+-- ============================================================
+CREATE TABLE IF NOT EXISTS about_artworks (
+  id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  title VARCHAR(180) NULL,
+  image_path VARCHAR(500) NOT NULL,
+  sort_order INT NOT NULL DEFAULT 0,
+  active TINYINT(1) NOT NULL DEFAULT 1,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  KEY idx_about_artworks_active_order (active,sort_order,id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+INSERT INTO about_artworks(title,image_path,sort_order,active)
+SELECT 'Mission','assets/about/mission.png',10,1
+WHERE NOT EXISTS (SELECT 1 FROM about_artworks WHERE image_path='assets/about/mission.png');
+INSERT INTO about_artworks(title,image_path,sort_order,active)
+SELECT 'Vision','assets/about/vision.png',20,1
+WHERE NOT EXISTS (SELECT 1 FROM about_artworks WHERE image_path='assets/about/vision.png');
+
+INSERT INTO videos(title,description,video_type,video_url,file_path,poster_path,sort_order,active)
+SELECT 'Project Showcase','', 'youtube','https://youtu.be/01nlW2CAMgA?si=2RbdC7qcg1i3etdD',NULL,NULL,10,1
+WHERE NOT EXISTS (SELECT 1 FROM videos WHERE video_url LIKE '%01nlW2CAMgA%');
+INSERT INTO videos(title,description,video_type,video_url,file_path,poster_path,sort_order,active)
+SELECT 'Project Highlight','', 'youtube','https://youtube.com/shorts/rIuzhI1PAL0?si=tn8Ny8yd7EpI2AmF',NULL,NULL,20,1
+WHERE NOT EXISTS (SELECT 1 FROM videos WHERE video_url LIKE '%rIuzhI1PAL0%');

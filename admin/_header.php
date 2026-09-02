@@ -250,6 +250,12 @@ $favicon = $set['favicon_path'] ?? ($set['admin_logo_path'] ?? 'assets/logo.jpg'
             </a>
         <?php endif; ?>
 
+        <?php if (user_can('videos.manage')): ?>
+            <a class="<?= $active === 'videos' ? 'active' : '' ?>" href="videos.php">
+                <?= icon('eye') ?><span>Videos</span>
+            </a>
+        <?php endif; ?>
+
         <?php if (user_can('areas.manage')): ?>
             <a class="<?= $active === 'areas' ? 'active' : '' ?>" href="areas.php">
                 <?= icon('pin') ?><span>Service areas</span>

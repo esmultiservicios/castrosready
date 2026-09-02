@@ -1622,3 +1622,426 @@ body {
 .estimate-section .estimate-contact span {
     color: #ffffff;
 }
+
+/* ==========================================================
+   CLIENT CONTENT UPDATE — APPROVED BADGES, MISSION/VISION ART,
+   AND RESPONSIVE VIDEO SHOWCASE
+   ========================================================== */
+.service-badge-wrap {
+    width: 64px;
+    height: 64px;
+    padding: 4px;
+    border-radius: 50%;
+    background: transparent;
+    overflow: hidden;
+}
+
+.service-badge-wrap img {
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: contain;
+}
+
+.services-grid summary {
+    grid-template-columns: 64px minmax(0, 1fr) 32px;
+}
+
+.mission-art-grid {
+    align-items: stretch;
+}
+
+.mission-art-card {
+    padding: 0 !important;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.mission-art-card > img {
+    width: 100%;
+    aspect-ratio: 4 / 5;
+    object-fit: cover;
+    display: block;
+    background: var(--teal);
+}
+
+.mission-art-copy {
+    padding: 18px 20px 20px;
+}
+
+.video-section {
+    background: #fff;
+}
+
+.video-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 22px;
+}
+
+.video-card {
+    min-width: 0;
+    border: 1px solid var(--line);
+    border-radius: 22px;
+    background: var(--paper);
+    overflow: hidden;
+    box-shadow: 0 16px 34px rgba(18, 48, 44, .07);
+}
+
+.video-frame {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    background: #102c2a;
+    overflow: hidden;
+}
+
+.video-frame iframe,
+.video-frame video {
+    width: 100%;
+    height: 100%;
+    display: block;
+    border: 0;
+    object-fit: contain;
+    background: #102c2a;
+}
+
+.video-card-copy {
+    padding: 20px 22px 22px;
+}
+
+.video-card-copy strong {
+    display: block;
+    font: 800 20px/1.2 'Manrope', sans-serif;
+    color: var(--ink);
+}
+
+.video-card-copy p {
+    margin: 8px 0 0;
+    color: var(--muted);
+    line-height: 1.65;
+}
+
+@media (max-width: 900px) {
+    .video-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 620px) {
+    .service-badge-wrap {
+        width: 54px;
+        height: 54px;
+    }
+
+    .services-grid summary {
+        grid-template-columns: 54px minmax(0, 1fr) 24px;
+        padding: 16px;
+    }
+
+    .mission-art-card > img {
+        aspect-ratio: 1 / 1.05;
+    }
+
+    .video-card-copy {
+        padding: 16px 18px 18px;
+    }
+}
+
+.visually-hidden {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    padding: 0 !important;
+    margin: -1px !important;
+    overflow: hidden !important;
+    clip: rect(0, 0, 0, 0) !important;
+    white-space: nowrap !important;
+    border: 0 !important;
+}
+
+/* Preserve the complete approved Mission/Vision artwork without cropping. */
+.mission-art-card > img {
+    aspect-ratio: auto;
+    height: auto;
+    object-fit: contain;
+}
+
+/* ==========================================================
+   PREMIUM PUBLIC VIDEO PRESENTATION
+   ========================================================== */
+.video-section {
+    position: relative;
+    background: #fff;
+    overflow: hidden;
+}
+
+.video-section .section-head {
+    align-items: end;
+    margin-bottom: 28px;
+}
+
+.video-section .section-head > div {
+    max-width: 760px;
+}
+
+.video-section .section-head > p {
+    max-width: 430px;
+}
+
+.video-grid {
+    gap: 26px;
+    align-items: stretch;
+}
+
+.video-card {
+    display: flex;
+    flex-direction: column;
+    border: 1px solid rgba(18, 76, 71, .14);
+    border-radius: 24px;
+    background: #fff;
+    box-shadow: 0 18px 44px rgba(18, 48, 44, .08);
+    transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+}
+
+.video-card:hover {
+    transform: translateY(-3px);
+    border-color: rgba(15, 119, 112, .28);
+    box-shadow: 0 24px 58px rgba(18, 48, 44, .12);
+}
+
+.video-frame {
+    border-bottom: 1px solid rgba(18, 76, 71, .10);
+    background: #0f2928;
+}
+
+.video-frame::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .035);
+}
+
+.video-frame iframe,
+.video-frame video {
+    position: absolute;
+    inset: 0;
+    object-fit: contain;
+}
+
+.video-card-copy {
+    flex: 1;
+    padding: 22px 24px 24px;
+    background: #fff;
+}
+
+.video-card-copy strong {
+    font-size: clamp(18px, 1.7vw, 22px);
+    line-height: 1.25;
+}
+
+.video-card-copy p {
+    margin-top: 9px;
+    font-size: 15px;
+    line-height: 1.7;
+}
+
+.video-grid > .video-card:last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+    width: min(760px, 100%);
+    justify-self: center;
+}
+
+@media (max-width: 900px) {
+    .video-section .section-head {
+        align-items: start;
+    }
+
+    .video-grid > .video-card:last-child:nth-child(odd) {
+        grid-column: auto;
+        width: 100%;
+    }
+}
+
+@media (max-width: 620px) {
+    .video-section .section-head {
+        margin-bottom: 20px;
+    }
+
+    .video-grid {
+        gap: 18px;
+    }
+
+    .video-card {
+        border-radius: 18px;
+    }
+
+    .video-card-copy {
+        padding: 17px 18px 19px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .video-card {
+        transition: none;
+    }
+
+    .video-card:hover {
+        transform: none;
+    }
+}
+
+/* ==========================================================
+   FLEXIBLE MISSION / VISION ARTWORK GALLERY
+   ========================================================== */
+.about-artwork-gallery {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 22px;
+    align-items: start;
+    margin-top: 24px;
+}
+
+.about-artwork-gallery.single-artwork {
+    grid-template-columns: minmax(0, 860px);
+    justify-content: start;
+}
+
+.about-artwork-gallery .mission-art-card {
+    min-width: 0;
+    border: 1px solid rgba(18, 76, 71, .14);
+    border-radius: 22px;
+    background: #fff;
+    box-shadow: 0 16px 36px rgba(18, 48, 44, .08);
+}
+
+.about-artwork-gallery .mission-art-card > img {
+    width: 100%;
+    height: auto;
+    max-height: none;
+    display: block;
+    object-fit: contain;
+    background: #fff;
+}
+
+.mission-text-fallback {
+    margin-top: 24px;
+}
+
+.mission-text-fallback article {
+    min-width: 0;
+}
+
+@media (max-width: 820px) {
+    .about-artwork-gallery,
+    .about-artwork-gallery.single-artwork {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 620px) {
+    .about-artwork-gallery {
+        gap: 16px;
+        margin-top: 18px;
+    }
+
+    .about-artwork-gallery .mission-art-card {
+        border-radius: 18px;
+    }
+}
+
+/* YouTube Shorts keep their natural portrait presentation instead of being forced into a wide crop. */
+.video-card-short {
+    align-self: start;
+}
+
+.video-frame-short {
+    width: min(430px, 100%);
+    aspect-ratio: 9 / 16;
+    margin-inline: auto;
+    border-inline: 1px solid rgba(18, 76, 71, .08);
+}
+
+@media (max-width: 900px) {
+    .video-frame-short {
+        width: min(390px, 100%);
+    }
+}
+
+@media (max-width: 620px) {
+    .video-frame-short {
+        width: min(340px, 100%);
+    }
+}
+
+
+/* ==========================================================
+   FINAL VIDEO SHOWCASE — UNIFORM, CLEAN & RESPONSIVE
+   All providers, including YouTube Shorts, use the same card
+   dimensions. Portrait content is contained by the player.
+   ========================================================== */
+.video-section .video-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 24px;
+    align-items: stretch;
+}
+
+.video-section .video-card,
+.video-section .video-card-short {
+    width: 100%;
+    min-width: 0;
+    height: 100%;
+    align-self: stretch;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.video-section .video-frame,
+.video-section .video-frame-short {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    margin: 0;
+    border: 0;
+    background: #102c2a;
+    overflow: hidden;
+}
+
+.video-section .video-frame iframe,
+.video-section .video-frame video,
+.video-section .video-frame-short iframe,
+.video-section .video-frame-short video {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+    border: 0;
+    object-fit: contain;
+    background: #102c2a;
+}
+
+.video-section .video-card-copy {
+    flex: 1;
+    min-height: 88px;
+}
+
+.video-section .video-grid > .video-card:last-child:nth-child(odd) {
+    grid-column: auto;
+    width: 100%;
+    justify-self: stretch;
+}
+
+@media (max-width: 900px) {
+    .video-section .video-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .video-section .video-card-copy {
+        min-height: 0;
+    }
+}
