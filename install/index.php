@@ -185,13 +185,9 @@ button,a.btn {
 <div class="steps">
 <span class="step on">
 </span>
-<span class="step <?=$done?'on':''?>
-
-">
+<span class="step <?=$done?'on':''?>">
 </span>
-<span class="step <?=$done?'on':''?>
-
-">
+<span class="step <?=$done?'on':''?>">
 </span>
 </div>
 <div class="brand">CASTRO'S READY · FIRST-TIME SETUP</div><?php
@@ -218,17 +214,11 @@ endif;
 
 <form method="post">
 <div class="grid">
-<label>Database host<input name="host" value="<?=htmlspecialchars($_POST['host']??'localhost',ENT_QUOTES)?>
-
-" required>
+<label>Database host<input name="host" value="<?=htmlspecialchars($_POST['host']??'localhost',ENT_QUOTES)?>" required>
 </label>
-<label>Database name<input name="dbname" value="<?=htmlspecialchars($_POST['dbname']??'',ENT_QUOTES)?>
-
-" required>
+<label>Database name<input name="dbname" value="<?=htmlspecialchars($_POST['dbname']??'',ENT_QUOTES)?>" required>
 </label>
-<label>Database user<input name="username" value="<?=htmlspecialchars($_POST['username']??'',ENT_QUOTES)?>
-
-" required>
+<label>Database user<input name="username" value="<?=htmlspecialchars($_POST['username']??'',ENT_QUOTES)?>" required>
 </label>
 <label>Database password<input type="password" name="password" autocomplete="new-password">
 </label>

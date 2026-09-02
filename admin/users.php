@@ -118,9 +118,7 @@ endif;
 ?>
 
 
-<section class="panel <?=($edit||$error)?'':'is-collapsed'?>
-
-" id="user-editor">
+<section class="panel <?=($edit||$error)?'':'is-collapsed'?>" id="user-editor">
 <div class="panel-heading">
 <div class="panel-icon"><?=icon('users')?>
 
@@ -133,36 +131,24 @@ endif;
 </div>
 </div>
 <form method="post" enctype="multipart/form-data">
-<input type="hidden" name="csrf" value="<?=h(csrf_token())?>
-
-">
+<input type="hidden" name="csrf" value="<?=h(csrf_token())?>">
 <input type="hidden" name="action" value="save">
-<input type="hidden" name="id" value="<?=$edit['id']??0?>
-
-">
+<input type="hidden" name="id" value="<?=$edit['id']??0?>">
 <div class="two-col">
-<label>Full name<input name="full_name" value="<?=h($edit['full_name']??'')?>
-
-">
+<label>Full name<input name="full_name" value="<?=h($edit['full_name']??'')?>">
 </label>
-<label>Username<input name="username" required value="<?=h($edit['username']??'')?>
-
-">
+<label>Username<input name="username" required value="<?=h($edit['username']??'')?>">
 </label>
 </div>
 <div class="two-col">
-<label>Email<input type="email" name="email" value="<?=h($edit['email']??'')?>
-
-">
+<label>Email<input type="email" name="email" value="<?=h($edit['email']??'')?>">
 </label>
 <label>Role<select name="role_id" required>
 <option value="">Choose role</option><?php
 foreach($roles as $r):if($r['role_key']==='owner'&&!role_is_owner($me))continue;
 ?>
 
-<option value="<?=$r['id']?>
-
-" <?=isset($edit['role_id'])&&(int)$edit['role_id']===(int)$r['id']?'selected':''?>
+<option value="<?=$r['id']?>" <?=isset($edit['role_id'])&&(int)$edit['role_id']===(int)$r['id']?'selected':''?>
 
 ><?=h($r['role_name'])?>
 
@@ -177,14 +163,8 @@ endforeach;
 if(!empty($edit['avatar_path'])):
 ?>
 
-<button class="current-avatar-preview" type="button" data-preview-src="../<?=h($edit['avatar_path'])?>
-
-" data-preview-caption="<?=h($edit['full_name']?:$edit['username'])?>
-
-">
-<img src="../<?=h($edit['avatar_path'])?>
-
-" alt="Current profile picture">
+<button class="current-avatar-preview" type="button" data-preview-src="../<?=h($edit['avatar_path'])?>" data-preview-caption="<?=h($edit['full_name']?:$edit['username'])?>">
+<img src="../<?=h($edit['avatar_path'])?>" alt="Current profile picture">
 <span>Current photo</span>
 </button><?php
 endif;
@@ -242,16 +222,8 @@ foreach($rows as $u):
 if(!empty($u['avatar_path'])):
 ?>
 
-<button class="user-avatar user-avatar-photo" type="button" data-preview-src="../<?=h($u['avatar_path'])?>
-
-" data-preview-caption="<?=h($u['full_name']?:$u['username'])?>
-
-">
-<img src="../<?=h($u['avatar_path'])?>
-
-" alt="<?=h($u['full_name']?:$u['username'])?>
-
-">
+<button class="user-avatar user-avatar-photo" type="button" data-preview-src="../<?=h($u['avatar_path'])?>" data-preview-caption="<?=h($u['full_name']?:$u['username'])?>">
+<img src="../<?=h($u['avatar_path'])?>" alt="<?=h($u['full_name']?:$u['username'])?>">
 </button><?php
 else:
 ?>
@@ -267,9 +239,7 @@ endif;
 <strong><?=h($u['full_name']?:$u['username'])?>
 
 </strong>
-<span class="badge <?=$u['active']?'success':'closed'?>
-
-"><?=$u['active']?'Active':'Disabled'?>
+<span class="badge <?=$u['active']?'success':'closed'?>"><?=$u['active']?'Active':'Disabled'?>
 
 </span>
 </div>
@@ -295,20 +265,14 @@ endif;
 </div>
 </div>
 <div class="actions">
-<a class="button secondary small" href="?edit=<?=$u['id']?>
-
-">Edit</a><?php
+<a class="button secondary small" href="?edit=<?=$u['id']?>">Edit</a><?php
 if((int)$u['id']!==(int)$me['id']):
 ?>
 
 <form method="post" data-swal-confirm="Delete this administrator?" data-swal-text="This removes login access. Website content will not be deleted.">
-<input type="hidden" name="csrf" value="<?=h(csrf_token())?>
-
-">
+<input type="hidden" name="csrf" value="<?=h(csrf_token())?>">
 <input type="hidden" name="action" value="delete">
-<input type="hidden" name="id" value="<?=$u['id']?>
-
-">
+<input type="hidden" name="id" value="<?=$u['id']?>">
 <button class="button danger-lite small">Delete</button>
 </form><?php
 endif;

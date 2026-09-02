@@ -35,12 +35,8 @@ if($_SERVER['REQUEST_METHOD']==='POST') {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<link rel="icon" href="../<?=h($favicon)?>
-
-">
-<link rel="shortcut icon" href="../<?=h($favicon)?>
-
-">
+<link rel="icon" href="../<?=h($favicon)?>">
+<link rel="shortcut icon" href="../<?=h($favicon)?>">
 <title>Admin Setup</title>
 <link rel="stylesheet" href="../assets/vendor/sweetalert2/sweetalert2.min.css">
 <link rel="stylesheet" href="../assets/vendor/show-notify/showNotify.css">
@@ -49,9 +45,7 @@ if($_SERVER['REQUEST_METHOD']==='POST') {
 <body>
 <main class="auth-wrap">
 <div class="auth-card">
-<img src="../<?=h($logo)?>
-
-" alt="">
+<img src="../<?=h($logo)?>" alt="">
 <p class="eyebrow">FIRST-TIME ADMIN SETUP</p>
 <h1>Create administrator</h1>
 <p>Set the account that will manage <?=h($brand)?>
@@ -74,9 +68,7 @@ endif;
 ?>
 
 <form method="post">
-<input type="hidden" name="csrf" value="<?=h(csrf_token())?>
-
-">
+<input type="hidden" name="csrf" value="<?=h(csrf_token())?>">
 <label>Full name<input name="full_name" autocomplete="name">
 </label>
 <label>Email<input type="email" name="email" autocomplete="email">

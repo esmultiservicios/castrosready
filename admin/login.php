@@ -52,12 +52,8 @@ if($_SERVER['REQUEST_METHOD']==='POST') {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<link rel="icon" href="../<?=h($favicon)?>
-
-">
-<link rel="shortcut icon" href="../<?=h($favicon)?>
-
-">
+<link rel="icon" href="../<?=h($favicon)?>">
+<link rel="shortcut icon" href="../<?=h($favicon)?>">
 <title>Admin Login</title>
 <link rel="stylesheet" href="../assets/vendor/sweetalert2/sweetalert2.min.css">
 <link rel="stylesheet" href="../assets/vendor/show-notify/showNotify.css">
@@ -67,9 +63,7 @@ if($_SERVER['REQUEST_METHOD']==='POST') {
 <main class="auth-wrap">
 <div class="auth-card auth-card-premium">
 <div class="auth-brand-mark">
-<img src="../<?=h($logo)?>
-
-" alt="">
+<img src="../<?=h($logo)?>" alt="">
 </div>
 <p class="eyebrow">SECURE ADMINISTRATION</p>
 <h1><?=h($brand)?>
@@ -114,9 +108,7 @@ endif;
 ?>
 
 <form method="post">
-<input type="hidden" name="csrf" value="<?=h(csrf_token())?>
-
-">
+<input type="hidden" name="csrf" value="<?=h(csrf_token())?>">
 <label>Username<input name="username" required autocomplete="username" autofocus>
 </label>
 <label>Password<input type="password" name="password" required autocomplete="current-password">

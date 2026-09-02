@@ -69,9 +69,7 @@ endif;
 foreach($rows as $a):
 ?>
 
-<article class="approval-card <?=h($a['status'])?>
-
-">
+<article class="approval-card <?=h($a['status'])?>">
 <div class="approval-icon"><?=icon('approval')?>
 
 </div>
@@ -112,12 +110,8 @@ if($a['status']==='pending'):
 ?>
 
 <form method="post" class="approval-actions">
-<input type="hidden" name="csrf" value="<?=h(csrf_token())?>
-
-">
-<input type="hidden" name="id" value="<?=$a['id']?>
-
-">
+<input type="hidden" name="csrf" value="<?=h(csrf_token())?>">
+<input type="hidden" name="id" value="<?=$a['id']?>">
 <label>Reviewer note<textarea name="reviewer_note" placeholder="Optional note">
 </textarea>
 </label>

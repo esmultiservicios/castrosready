@@ -121,14 +121,10 @@ if($view):
 </h2>
 </div>
 <div class="request-badges">
-<span class="badge <?=h($view['priority'])?>
-
-"><?=h($view['priority'])?>
+<span class="badge <?=h($view['priority'])?>"><?=h($view['priority'])?>
 
 </span>
-<span class="badge <?=h($view['status'])?>
-
-"><?=h(str_replace('_',' ',$view['status']))?>
+<span class="badge <?=h($view['status'])?>"><?=h(str_replace('_',' ',$view['status']))?>
 
 </span>
 </div>
@@ -187,14 +183,8 @@ foreach($all as $a):
 
 <article class="gallery-item">
 <div class="gallery-media">
-<img src="../<?=h($a['file_path'])?>
-
-" alt="Attachment">
-<button type="button" class="zoom-btn" data-preview-src="../<?=h($a['file_path'])?>
-
-" data-preview-caption="<?=h($a['original_name']??'Project image')?>
-
-"><?=icon('eye')?>
+<img src="../<?=h($a['file_path'])?>" alt="Attachment">
+<button type="button" class="zoom-btn" data-preview-src="../<?=h($a['file_path'])?>" data-preview-caption="<?=h($a['original_name']??'Project image')?>"><?=icon('eye')?>
 
 </button>
 </div>
@@ -210,21 +200,15 @@ if($canAssigned):
 ?>
 
 <form method="post" class="estimate-workflow">
-<input type="hidden" name="csrf" value="<?=h(csrf_token())?>
-
-">
-<input type="hidden" name="id" value="<?=$view['id']?>
-
-">
+<input type="hidden" name="csrf" value="<?=h(csrf_token())?>">
+<input type="hidden" name="id" value="<?=$view['id']?>">
 <input type="hidden" name="action" value="update">
 <div class="four-col">
 <label>Status<select name="status"><?php
 foreach(['new'=>'New','contacted'=>'Contacted','in_progress'=>'In progress','won'=>'Won','lost'=>'Lost','closed'=>'Closed'] as $k=>$v):
 ?>
 
-<option value="<?=$k?>
-
-" <?=$view['status']===$k?'selected':''?>
+<option value="<?=$k?>" <?=$view['status']===$k?'selected':''?>
 
 ><?=$v?>
 
@@ -238,9 +222,7 @@ endforeach;
 foreach(['low'=>'Low','normal'=>'Normal','high'=>'High','urgent'=>'Urgent'] as $k=>$v):
 ?>
 
-<option value="<?=$k?>
-
-" <?=$view['priority']===$k?'selected':''?>
+<option value="<?=$k?>" <?=$view['priority']===$k?'selected':''?>
 
 ><?=$v?>
 
@@ -250,9 +232,7 @@ endforeach;
 
 </select>
 </label>
-<label>Follow-up date<input type="date" name="follow_up_date" value="<?=h($view['follow_up_date']??'')?>
-
-">
+<label>Follow-up date<input type="date" name="follow_up_date" value="<?=h($view['follow_up_date']??'')?>">
 </label><?php
 if($canAll):
 ?>
@@ -262,9 +242,7 @@ if($canAll):
 foreach($assignees as $u):
 ?>
 
-<option value="<?=$u['id']?>
-
-" <?=(int)($view['assigned_to']??0)===(int)$u['id']?'selected':''?>
+<option value="<?=$u['id']?>" <?=(int)($view['assigned_to']??0)===(int)$u['id']?'selected':''?>
 
 ><?=h($u['full_name']?:$u['username'])?>
 
@@ -279,9 +257,7 @@ endforeach;
 else:
 ?>
 
-<label>Assigned to<input value="<?=h($view['assigned_name']?:$view['assigned_username']?:'You')?>
-
-" disabled>
+<label>Assigned to<input value="<?=h($view['assigned_name']?:$view['assigned_username']?:'You')?>" disabled>
 </label><?php
 endif;
 ?>
@@ -300,12 +276,8 @@ endif;
 </div>
 </div>
 <form method="post">
-<input type="hidden" name="csrf" value="<?=h(csrf_token())?>
-
-">
-<input type="hidden" name="id" value="<?=$view['id']?>
-
-">
+<input type="hidden" name="csrf" value="<?=h(csrf_token())?>">
+<input type="hidden" name="id" value="<?=$view['id']?>">
 <input type="hidden" name="action" value="note">
 <label>Add note<textarea name="note" required placeholder="Call outcome, next step, customer preference…">
 </textarea>
@@ -350,9 +322,7 @@ endif;
 foreach($rows as $r):
 ?>
 
-<article class="request-card animate-in priority-<?=h($r['priority'])?>
-
-">
+<article class="request-card animate-in priority-<?=h($r['priority'])?>">
 <div class="request-top">
 <div>
 <strong><?=h($r['full_name']?:'Website visitor')?>
@@ -362,9 +332,7 @@ foreach($rows as $r):
 
 </small>
 </div>
-<span class="badge <?=h($r['status'])?>
-
-"><?=h(str_replace('_',' ',$r['status']))?>
+<span class="badge <?=h($r['status'])?>"><?=h(str_replace('_',' ',$r['status']))?>
 
 </span>
 </div>
@@ -376,9 +344,7 @@ foreach($rows as $r):
 
 </p>
 <div class="request-assignment">
-<span class="badge <?=h($r['priority'])?>
-
-"><?=h($r['priority'])?>
+<span class="badge <?=h($r['priority'])?>"><?=h($r['priority'])?>
 
 </span>
 <small>Assigned: <?=h($r['assigned_name']?:$r['assigned_username']?:'Unassigned')?>
@@ -394,9 +360,7 @@ endif;
 </small>
 </div>
 <div class="actions">
-<a class="button secondary small" href="?view=<?=$r['id']?>
-
-">Open request</a>
+<a class="button secondary small" href="?view=<?=$r['id']?>">Open request</a>
 </div>
 </article><?php
 endforeach;

@@ -74,12 +74,8 @@ if($maintenance&&!$adminPreview) {
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Castro's Ready</title>
-<link rel="icon" href="<?=h($favicon)?>
-
-">
-<link rel="shortcut icon" href="<?=h($favicon)?>
-
-">
+<link rel="icon" href="<?=h($favicon)?>">
+<link rel="shortcut icon" href="<?=h($favicon)?>">
 <style>
 * {
   box-sizing:border-box
@@ -172,9 +168,7 @@ p {
 if($mi!==''):
 ?>
 
-<img class="hero" src="<?=h($mi)?>
-
-" alt="Website maintenance"><?php
+<img class="hero" src="<?=h($mi)?>" alt="Website maintenance"><?php
 endif;
 ?>
 
@@ -184,9 +178,7 @@ endif;
 <p><?=h($mx)?>
 
 </p>
-<a class="a" href="https://wa.me/<?=$digits?>
-
-">Contact us on WhatsApp</a>
+<a class="a" href="https://wa.me/<?=$digits?>">Contact us on WhatsApp</a>
 </section>
 </main>
 </body>
@@ -255,44 +247,28 @@ $renderNav=function() use($navBehavior,$navLogo,$navAlign) {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="description" content="<?=h($settings['seo_description']??'Professional home improvement services.')?>
-
-">
-<meta name="robots" content="<?=h($settings['seo_robots']??'index,follow')?>
-
-">
-<meta property="og:title" content="<?=h($settings['seo_title']??"Castro's Ready | Home Improvement")?>
-
-">
-<meta property="og:description" content="<?=h($settings['seo_description']??'Professional home improvement services.')?>
-
-"><?php
+<meta name="description" content="<?=h($settings['seo_description']??'Professional home improvement services.')?>">
+<meta name="robots" content="<?=h($settings['seo_robots']??'index,follow')?>">
+<meta property="og:title" content="<?=h($settings['seo_title']??"Castro's Ready | Home Improvement")?>">
+<meta property="og:description" content="<?=h($settings['seo_description']??'Professional home improvement services.')?>"><?php
 if(!empty($settings['seo_social_image'])):
 ?>
 
-<meta property="og:image" content="<?=h($settings['seo_social_image'])?>
-
-"><?php
+<meta property="og:image" content="<?=h($settings['seo_social_image'])?>"><?php
 endif;
 ?>
 
 <title><?=h($settings['seo_title']??"Castro's Ready | Home Improvement")?>
 
 </title>
-<link rel="icon" href="<?=h($favicon)?>
-
-">
-<link rel="shortcut icon" href="<?=h($favicon)?>
-
-"><?php
+<link rel="icon" href="<?=h($favicon)?>">
+<link rel="shortcut icon" href="<?=h($favicon)?>"><?php
 if($fontHref!==''):
 ?>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="<?=h($fontHref)?>
-
-" rel="stylesheet"><?php
+<link href="<?=h($fontHref)?>" rel="stylesheet"><?php
 endif;
 ?>
 
@@ -347,9 +323,7 @@ if($navPosition==='above_banner') {
 if(section_enabled('home')):
 ?>
 
-<section class="hero section-anchor" id="home" style="order:<?=section_order('home')?>
-
-">
+<section class="hero section-anchor" id="home" style="order:<?=section_order('home')?>">
 <div class="container hero-grid">
 <div class="reveal">
 <span class="eyebrow" data-content-key="hero_eyebrow"><?=h(c('hero_eyebrow'))?>
@@ -363,9 +337,7 @@ if(section_enabled('home')):
 </p>
 <div class="hero-actions">
 <a class="btn btn-primary" href="#estimate" data-scroll>Request a Free Estimate</a>
-<a class="btn btn-secondary" href="tel:<?=$digits?>
-
-">Call <?=h($phone)?>
+<a class="btn btn-secondary" href="tel:<?=$digits?>">Call <?=h($phone)?>
 
 </a>
 </div>
@@ -390,9 +362,7 @@ endif;
 if(section_enabled('intro')):
 ?>
 
-<section class="intro-strip" style="order:<?=section_order('intro')?>
-
-">
+<section class="intro-strip" style="order:<?=section_order('intro')?>">
 <div class="container intro-grid reveal">
 <div>
 <span class="kicker">WHAT WE DO</span>
@@ -412,9 +382,7 @@ endif;
 if(section_enabled('about')):
 ?>
 
-<section class="section section-anchor" id="about" style="order:<?=section_order('about')?>
-
-">
+<section class="section section-anchor" id="about" style="order:<?=section_order('about')?>">
 <div class="container about-grid">
 <div class="photo-stack reveal">
 <div class="photo photo-main">
@@ -467,9 +435,7 @@ endif;
 if(section_enabled('services')):
 ?>
 
-<section class="section services-section section-anchor" id="services" style="order:<?=section_order('services')?>
-
-">
+<section class="section services-section section-anchor" id="services" style="order:<?=section_order('services')?>">
 <div class="container">
 <div class="section-head reveal">
 <div>
@@ -513,9 +479,7 @@ endif;
 if(section_enabled('gallery')):
 ?>
 
-<section class="section gallery-section section-anchor" id="gallery" style="order:<?=section_order('gallery')?>
-
-">
+<section class="section gallery-section section-anchor" id="gallery" style="order:<?=section_order('gallery')?>">
 <div class="container">
 <div class="section-head reveal">
 <div>
@@ -528,19 +492,11 @@ if(section_enabled('gallery')):
 foreach($gallery as $i=>$g):$img=$g['image_path']?:gallery_fallback($i);
 ?>
 
-<article class="gallery-card g<?=($i%6)+1?>
-
-" style="background-image:url('<?=h($img)?>
-
-')">
+<article class="gallery-card g<?=($i%6)+1?>" style="background-image:url('<?=h($img)?>')">
 <span><?=h($g['title'])?>
 
 </span>
-<button type="button" class="gallery-zoom" data-gallery-src="<?=h($img)?>
-
-" data-gallery-title="<?=h($g['title'])?>
-
-" aria-label="View <?=h($g['title'])?>
+<button type="button" class="gallery-zoom" data-gallery-src="<?=h($img)?>" data-gallery-title="<?=h($g['title'])?>" aria-label="View <?=h($g['title'])?>
 
  large">⌕</button>
 </article><?php
@@ -557,9 +513,7 @@ endif;
 if(section_enabled('areas')):
 ?>
 
-<section class="section areas-section section-anchor" id="areas" style="order:<?=section_order('areas')?>
-
-">
+<section class="section areas-section section-anchor" id="areas" style="order:<?=section_order('areas')?>">
 <div class="container areas-grid">
 <div class="reveal">
 <span class="kicker">SERVICE AREAS</span>
@@ -585,9 +539,7 @@ endif;
 ?>
 
 </div>
-<a class="btn btn-secondary" href="tel:<?=$digits?>
-
-">Ask if we serve your area</a>
+<a class="btn btn-secondary" href="tel:<?=$digits?>">Ask if we serve your area</a>
 </div>
 <?php
 $serviceMapEnabled=($settings['service_map_enabled']??'1')==='1';
@@ -626,9 +578,7 @@ endif;
 if(section_enabled('tips')):
 ?>
 
-<section class="section tips-section section-anchor" id="tips" style="order:<?=section_order('tips')?>
-
-">
+<section class="section tips-section section-anchor" id="tips" style="order:<?=section_order('tips')?>">
 <div class="container">
 <div class="section-head reveal">
 <div>
@@ -648,9 +598,7 @@ foreach($tips as $i=>$tip):
 <h3><?=h($tip['title'])?>
 
 </h3>
-<a href="<?=h($tip['url']?:'#')?>
-
-">Read guide →</a>
+<a href="<?=h($tip['url']?:'#')?>">Read guide →</a>
 </article><?php
 endforeach;
 ?>
@@ -665,9 +613,7 @@ endif;
 if(section_enabled('estimate')):
 ?>
 
-<section class="section estimate-section section-anchor" id="estimate" style="order:<?=section_order('estimate')?>
-
-">
+<section class="section estimate-section section-anchor" id="estimate" style="order:<?=section_order('estimate')?>">
 <div class="container estimate-grid">
 <div class="estimate-copy reveal">
 <span class="kicker">FREE ESTIMATE</span>
@@ -678,17 +624,13 @@ if(section_enabled('estimate')):
 
 </p>
 <div class="estimate-contact">
-<a href="tel:<?=$digits?>
-
-">
+<a href="tel:<?=$digits?>">
 <b>Call</b>
 <span><?=h($phone)?>
 
 </span>
 </a>
-<a href="mailto:<?=h($email)?>
-
-">
+<a href="mailto:<?=h($email)?>">
 <b>Email</b>
 <span><?=h($email)?>
 
@@ -751,9 +693,7 @@ endif;
 if(section_enabled('contact')):
 ?>
 
-<section class="section contact-section section-anchor" id="contact" style="order:<?=section_order('contact')?>
-
-">
+<section class="section contact-section section-anchor" id="contact" style="order:<?=section_order('contact')?>">
 <div class="container contact-grid">
 <div class="reveal contact-intro">
 <span class="kicker">CONTACT</span>
@@ -768,9 +708,7 @@ if(section_enabled('contact')):
 </div>
 </div>
 <div class="contact-links reveal">
-<a class="contact-card" href="tel:<?=$digits?>
-
-">
+<a class="contact-card" href="tel:<?=$digits?>">
 <i class="contact-icon">☎</i>
 <div>
 <span>Phone</span>
@@ -781,9 +719,7 @@ if(section_enabled('contact')):
 </div>
 <b class="contact-arrow">→</b>
 </a>
-<a class="contact-card" target="_blank" rel="noopener" href="https://wa.me/<?=$digits?>
-
-">
+<a class="contact-card" target="_blank" rel="noopener" href="https://wa.me/<?=$digits?>">
 <i class="contact-icon">WA</i>
 <div>
 <span>WhatsApp</span>
@@ -792,9 +728,7 @@ if(section_enabled('contact')):
 </div>
 <b class="contact-arrow">→</b>
 </a>
-<a class="contact-card" href="mailto:<?=h($email)?>
-
-">
+<a class="contact-card" href="mailto:<?=h($email)?>">
 <i class="contact-icon">✉</i>
 <div>
 <span>Email</span>
@@ -805,9 +739,7 @@ if(section_enabled('contact')):
 </div>
 <b class="contact-arrow">→</b>
 </a>
-<a class="contact-card" target="_blank" rel="noopener" href="<?=h($settings['youtube']??'#')?>
-
-">
+<a class="contact-card" target="_blank" rel="noopener" href="<?=h($settings['youtube']??'#')?>">
 <i class="contact-icon">▶</i>
 <div>
 <span>YouTube</span>
@@ -840,14 +772,10 @@ endif;
 </div>
 <div>
 <strong>Contact</strong>
-<a href="tel:<?=$digits?>
-
-"><?=h($phone)?>
+<a href="tel:<?=$digits?>"><?=h($phone)?>
 
 </a>
-<a href="mailto:<?=h($email)?>
-
-">Email us</a>
+<a href="mailto:<?=h($email)?>">Email us</a>
 <a href="#estimate" data-scroll>Free Estimate</a>
 </div>
 <div>
@@ -880,13 +808,9 @@ endif;
 if(($settings['whatsapp_enabled']??'1')==='1'):
 ?>
 
-<a class="floating-whatsapp <?=($settings['whatsapp_position']??'right')==='left'?'left':''?>
+<a class="floating-whatsapp <?=($settings['whatsapp_position']??'right')==='left'?'left':''?>" href="https://wa.me/<?=$digits?>
 
-" href="https://wa.me/<?=$digits?>
-
-?text=<?=rawurlencode($settings['whatsapp_message']??"Hello, I would like more information about Castro's Ready services.")?>
-
-" target="_blank" rel="noopener" aria-label="Contact Castro's Ready on WhatsApp">
+?text=<?=rawurlencode($settings['whatsapp_message']??"Hello, I would like more information about Castro's Ready services.")?>" target="_blank" rel="noopener" aria-label="Contact Castro's Ready on WhatsApp">
 <span>WA</span>
 <b>WhatsApp</b>
 </a><?php

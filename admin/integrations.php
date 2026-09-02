@@ -99,21 +99,15 @@ endif;
 </div>
 </div>
 <form method="post">
-<input type="hidden" name="csrf" value="<?=h(csrf_token())?>
-
-">
+<input type="hidden" name="csrf" value="<?=h(csrf_token())?>">
 <input type="hidden" name="action" value="save">
-<input type="hidden" name="id" value="<?=h((string)($edit['id']??0))?>
-
-">
+<input type="hidden" name="id" value="<?=h((string)($edit['id']??0))?>">
 <div class="three-col">
 <label>API type<select name="api_type" data-api-type><?php
 foreach($apiTypes as $k=>$v):
 ?>
 
-<option value="<?=h($k)?>
-
-" <?=($edit['api_type']??'custom')===$k?'selected':''?>
+<option value="<?=h($k)?>" <?=($edit['api_type']??'custom')===$k?'selected':''?>
 
 ><?=h($v)?>
 
@@ -123,9 +117,7 @@ endforeach;
 
 </select>
 </label>
-<label>Provider name<input name="provider_name" required placeholder="Stripe, PayPal, HubSpot..." value="<?=h($edit['provider_name']??'')?>
-
-">
+<label>Provider name<input name="provider_name" required placeholder="Stripe, PayPal, HubSpot..." value="<?=h($edit['provider_name']??'')?>">
 </label>
 <label>Environment<select name="environment">
 <option value="sandbox" <?=($edit['environment']??'sandbox')==='sandbox'?'selected':''?>
@@ -138,17 +130,13 @@ endforeach;
 </label>
 </div>
 <div class="two-col">
-<label>Display category<input name="category" placeholder="Payments, CRM, Banking..." value="<?=h($edit['category']??'')?>
-
-">
+<label>Display category<input name="category" placeholder="Payments, CRM, Banking..." value="<?=h($edit['category']??'')?>">
 </label>
 <label>Authentication type<select name="auth_type"><?php
 foreach($authTypes as $k=>$v):
 ?>
 
-<option value="<?=h($k)?>
-
-" <?=($edit['auth_type']??'api_key')===$k?'selected':''?>
+<option value="<?=h($k)?>" <?=($edit['auth_type']??'api_key')===$k?'selected':''?>
 
 ><?=h($v)?>
 
@@ -159,22 +147,14 @@ endforeach;
 </select>
 </label>
 </div>
-<label>Base API URL<input name="base_url" placeholder="https://api.provider.com/v1" value="<?=h($edit['base_url']??'')?>
-
-">
+<label>Base API URL<input name="base_url" placeholder="https://api.provider.com/v1" value="<?=h($edit['base_url']??'')?>">
 </label>
-<label>Public key / Client ID / Username<input name="public_key" value="<?=h($edit['public_key']??'')?>
-
-">
+<label>Public key / Client ID / Username<input name="public_key" value="<?=h($edit['public_key']??'')?>">
 </label>
 <div class="two-col">
-<label>Secret key / Token / Client secret<input type="password" name="secret_key" placeholder="<?=$edit?'Leave blank to keep saved secret':'Secret credential'?>
-
-">
+<label>Secret key / Token / Client secret<input type="password" name="secret_key" placeholder="<?=$edit?'Leave blank to keep saved secret':'Secret credential'?>">
 </label>
-<label>Webhook secret<input type="password" name="webhook_secret" placeholder="<?=$edit?'Leave blank to keep saved secret':'Optional webhook secret'?>
-
-">
+<label>Webhook secret<input type="password" name="webhook_secret" placeholder="<?=$edit?'Leave blank to keep saved secret':'Optional webhook secret'?>">
 </label>
 </div>
 <label>Notes<textarea name="notes" placeholder="Scopes, webhook URL, account reference, setup notes..."><?=h($edit['notes']??'')?>
@@ -234,9 +214,7 @@ foreach($rows as $r):
 
 </small>
 </div>
-<span class="badge <?=$r['active']?'contacted':'closed'?>
-
-"><?=$r['active']?'Enabled':'Disabled'?>
+<span class="badge <?=$r['active']?'contacted':'closed'?>"><?=$r['active']?'Enabled':'Disabled'?>
 
 </span>
 </div>
@@ -244,17 +222,11 @@ foreach($rows as $r):
 
 </p>
 <div class="actions">
-<a class="button secondary small" href="?edit=<?=$r['id']?>
-
-">Edit</a>
+<a class="button secondary small" href="?edit=<?=$r['id']?>">Edit</a>
 <form method="post" data-swal-confirm="Delete this integration?" data-swal-text="Stored integration settings for this provider will be removed.">
-<input type="hidden" name="csrf" value="<?=h(csrf_token())?>
-
-">
+<input type="hidden" name="csrf" value="<?=h(csrf_token())?>">
 <input type="hidden" name="action" value="delete">
-<input type="hidden" name="id" value="<?=$r['id']?>
-
-">
+<input type="hidden" name="id" value="<?=$r['id']?>">
 <button class="button danger small">Delete</button>
 </form>
 </div>

@@ -53,9 +53,7 @@ require __DIR__.'/_header.php';
 <p class="muted">See where administrator accounts are signed in and immediately revoke access when needed.</p>
 </div>
 <form method="post">
-<input type="hidden" name="csrf" value="<?=h(csrf_token())?>
-
-">
+<input type="hidden" name="csrf" value="<?=h(csrf_token())?>">
 <button class="button secondary" name="action" value="revoke_others">Sign out my other sessions</button>
 </form>
 </div><?php
@@ -81,9 +79,7 @@ endif;
 foreach($sessions as $s):
 ?>
 
-<article class="session-card <?=$s['revoked_at']?'revoked':''?>
-
-">
+<article class="session-card <?=$s['revoked_at']?'revoked':''?>">
 <span class="session-device"><?=icon('shield')?>
 
 </span>
@@ -108,13 +104,9 @@ if(!$s['revoked_at']):
 
 <span class="badge success">Active</span>
 <form method="post" data-swal-confirm="Sign out this session?" data-swal-text="The user will need to sign in again on this device.">
-<input type="hidden" name="csrf" value="<?=h(csrf_token())?>
-
-">
+<input type="hidden" name="csrf" value="<?=h(csrf_token())?>">
 <input type="hidden" name="action" value="revoke">
-<input type="hidden" name="session_id" value="<?=$s['id']?>
-
-">
+<input type="hidden" name="session_id" value="<?=$s['id']?>">
 <button class="button danger-lite small">Sign out</button>
 </form><?php
 else:
@@ -143,9 +135,7 @@ foreach($events as $e):
 ?>
 
 <article>
-<span class="login-event-dot <?=$e['success']?'success':'error'?>
-
-">
+<span class="login-event-dot <?=$e['success']?'success':'error'?>">
 </span>
 <div>
 <strong><?=h($e['username']?:$e['username_attempt']?:'Unknown')?>
@@ -157,9 +147,7 @@ foreach($events as $e):
 
 </small>
 </div>
-<span class="badge <?=$e['success']?'success':'closed'?>
-
-"><?=$e['success']?'Successful':'Failed'?>
+<span class="badge <?=$e['success']?'success':'closed'?>"><?=$e['success']?'Successful':'Failed'?>
 
 </span>
 </article><?php
