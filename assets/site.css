@@ -1576,27 +1576,120 @@ h1,h2,h3,h4,h5,h6,.brand-copy strong,.service-icon,.services-grid summary strong
   }
 }
 /* ==========================================================
-   READABILITY BASELINE
-   Small public text stays readable by default and can still
-   be adjusted from Appearance inside the administrator.
-   ========================================================== */ .brand-copy small, .trust-row, .photo-note span, .mission-grid p, .values span, .area-tags span, .service-icon, .service-body, .gallery-card span, .map-card span, .tips-grid article > span, .tips-grid a, .estimate-contact span, .estimate-form label, .estimate-form input, .estimate-form select, .estimate-form textarea, .form-note, .contact-accent, .contact-links .contact-card small, .developer-credit {
-      font-size: var(--size-small, 14px) !important;
-}
+   PUBLIC READABILITY BASELINE
+   Public copy uses a clear, solid color and practical minimum
+   sizes so it never looks faded or like a watermark.
+   ========================================================== */
 body {
-      color: var(--ink);
-      background: var(--paper);
+    color: var(--ink);
+    background: var(--paper);
+    font-size: max(var(--size-body, 16px), 17px);
 }
-.site-header, .services-section, .areas-section, .contact-section, .mission-grid article, .values span, .area-tags span, .estimate-form, .map-card, .tips-grid article {
-      background-color: var(--white);
+
+.site-header,
+.services-section,
+.areas-section,
+.contact-section,
+.mission-grid article,
+.values span,
+.area-tags span,
+.estimate-form,
+.map-card,
+.tips-grid article {
+    background-color: var(--white);
 }
-.hero-text, .section-copy p, .section-head p, .areas-grid p, .contact-grid p, .service-body, .map-card span, .contact-links .contact-card small {
-      color: var(--muted);
+
+.hero-text,
+.section-copy p,
+.section-head p,
+.areas-grid p,
+.contact-grid p,
+.service-body,
+.service-body p,
+.map-card span,
+.video-card-copy p,
+.contact-accent,
+.contact-links .contact-card small,
+.public-upload small,
+.form-note,
+.admin-link {
+    color: var(--ink) !important;
+    opacity: 1;
 }
-.photo-note, .service-icon {
-      background: var(--yellow);
+
+.hero-text {
+    font-size: max(var(--size-body, 16px), 19px) !important;
 }
-.photo, .gallery-card, .map-card, .estimate-form {
-      border-radius: var(--radius, 24px);
+
+.section-copy p,
+.section-head p,
+.areas-grid p,
+.estimate-copy p,
+.contact-grid p,
+.intro-strip p,
+.video-card-copy p,
+.service-body,
+.service-body p {
+    font-size: max(var(--size-body, 16px), 17px) !important;
+    line-height: max(var(--line-body, 1.7), 1.7) !important;
+}
+
+.brand-copy small,
+.trust-row,
+.photo-note span,
+.mission-grid p,
+.values span,
+.area-tags span,
+.gallery-card span,
+.map-card span,
+.tips-grid article > span,
+.tips-grid a,
+.estimate-contact span,
+.estimate-form label,
+.estimate-form input,
+.estimate-form select,
+.estimate-form textarea,
+.form-note,
+.contact-accent,
+.contact-links .contact-card small {
+    font-size: max(var(--size-small, 14px), 15px) !important;
+}
+
+.hero-badge span,
+.photo-note span,
+.trust-row {
+    color: var(--ink);
+    opacity: 1;
+}
+
+.intro-strip p,
+.estimate-section .estimate-copy p,
+.estimate-section .estimate-contact span {
+    color: #ffffff !important;
+}
+
+.footer-brand span,
+.footer-grid a,
+.footer-grid span,
+.developer-credit {
+    color: #eef5f2;
+    opacity: 1;
+}
+
+.developer-credit {
+    font-size: 13px;
+}
+
+.photo-note,
+.service-icon {
+    background: var(--yellow);
+}
+
+.photo,
+.gallery-card,
+.map-card,
+.estimate-form {
+    border-radius: var(--radius, 24px);
 }
 
 
@@ -1630,6 +1723,9 @@ body {
 .service-badge-wrap {
     width: 64px;
     height: 64px;
+    min-width: 64px;
+    min-height: 64px;
+    aspect-ratio: 1 / 1;
     padding: 4px;
     border-radius: 50%;
     background: transparent;
@@ -1645,6 +1741,33 @@ body {
 
 .services-grid summary {
     grid-template-columns: 64px minmax(0, 1fr) 32px;
+    min-height: 104px;
+}
+
+.services-grid {
+    align-items: start;
+}
+
+.services-grid details {
+    width: 100%;
+    align-self: start;
+}
+
+.services-grid summary strong {
+    font-size: max(var(--size-body, 16px), 19px);
+    line-height: 1.3;
+}
+
+.services-grid summary i {
+    justify-self: center;
+}
+
+.service-body {
+    padding: 0 20px 22px 96px;
+}
+
+.service-body p {
+    margin: 0;
 }
 
 .mission-art-grid {
@@ -1719,7 +1842,7 @@ body {
 
 .video-card-copy p {
     margin: 8px 0 0;
-    color: var(--muted);
+    color: var(--ink);
     line-height: 1.65;
 }
 
@@ -1733,11 +1856,18 @@ body {
     .service-badge-wrap {
         width: 54px;
         height: 54px;
+        min-width: 54px;
+        min-height: 54px;
     }
 
     .services-grid summary {
         grid-template-columns: 54px minmax(0, 1fr) 24px;
+        min-height: 86px;
         padding: 16px;
+    }
+
+    .service-body {
+        padding: 0 16px 18px;
     }
 
     .mission-art-card > img {

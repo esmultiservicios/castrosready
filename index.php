@@ -468,9 +468,7 @@ if(section_enabled('services')):
 foreach($services as $i=>$s):
 ?>
 
-<details <?=$i===0?'open':''?>
-
->
+<details>
 <summary>
 <span class="service-icon service-badge-wrap">
 <?php if(!empty($s['icon_path'])): ?><img src="<?=h($s['icon_path'])?>" alt="<?=h($s['title'])?> service badge" loading="lazy"><?php else: ?><?=str_pad((string)($i+1),2,'0',STR_PAD_LEFT)?><?php endif; ?>
