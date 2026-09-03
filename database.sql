@@ -244,7 +244,10 @@ INSERT INTO settings(setting_key,setting_value) VALUES
 ('facebook','#'),('tiktok','#'),('website','castrosready.us'),('business_hours',''),
 ('admin_brand_name','Castro''s Ready Admin'),('admin_logo_path','assets/logo.jpg'),('favicon_path','assets/logo.jpg'),
 ('maintenance_mode','0'),('maintenance_title','We are improving our website.'),('maintenance_text','Castro''s Ready will be back shortly. For immediate assistance, contact us by phone or WhatsApp.'),('maintenance_image_path',''),
-('whatsapp_enabled','1'),('whatsapp_message','Hello, I would like more information about Castro''s Ready services.'),('whatsapp_position','right')
+('whatsapp_enabled','1'),('whatsapp_message','Hello, I would like more information about Castro''s Ready services.'),('whatsapp_position','right'),
+('service_map_query','6624 Aspern Drive, Elkridge, MD 21075, United States'),
+('service_map_label','Castro''s Ready'),
+('service_map_enabled','1')
 ON DUPLICATE KEY UPDATE setting_value=VALUES(setting_value);
 
 INSERT INTO services(title,details,sort_order,active)
@@ -372,7 +375,7 @@ CREATE TABLE IF NOT EXISTS site_backups (
   PRIMARY KEY (id), KEY idx_backups_created (created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 INSERT INTO site_sections(section_key,label,sort_order,active) VALUES
-('home','Home / Hero',10,1),('intro','What We Do',20,1),('about','About Us',30,1),('services','Services',40,1),('videos','Videos',50,1),('gallery','Gallery',60,1),('areas','Service Areas',70,1),('tips','Home Tips',80,1),('estimate','Free Estimate',90,1),('contact','Contact',100,1)
+('home','Home / Hero',10,1),('intro','What We Do',20,1),('about','About Us',30,1),('services','Services',40,1),('videos','Videos',50,1),('gallery','Gallery',60,1),('areas','Service Areas',70,1),('estimate','Free Estimate',80,1),('tips','Home Tips',90,1),('contact','Contact',100,1)
 ON DUPLICATE KEY UPDATE label=VALUES(label);
 INSERT INTO about_artworks(title,image_path,sort_order,active)
 SELECT 'Mission','assets/about/mission.png',10,1

@@ -1,6 +1,6 @@
 -- CASTRO'S READY CMS - CUMULATIVE DATABASE UPDATE (SAFE TO RE-RUN)
--- Designed for the MariaDB/current-MySQL environments used by the CMS hosting.
--- CREATE TABLE IF NOT EXISTS, ADD COLUMN/INDEX IF NOT EXISTS, INSERT IGNORE
+-- Designed for older MySQL and MariaDB environments used by the CMS hosting.
+-- information_schema checks, CREATE TABLE IF NOT EXISTS, INSERT IGNORE
 -- and NOT EXISTS guards prevent duplicate schema/content when re-run.
 -- Do NOT use database.sql on an existing production database.
 
@@ -67,7 +67,7 @@ CREATE TABLE IF NOT EXISTS site_backups (
   PRIMARY KEY (id), KEY idx_backups_created (created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 INSERT INTO site_sections(section_key,label,sort_order,active) VALUES
-('home','Home / Hero',10,1),('intro','What We Do',20,1),('about','About Us',30,1),('services','Services',40,1),('gallery','Gallery',50,1),('areas','Service Areas',60,1),('tips','Home Tips',70,1),('estimate','Free Estimate',80,1),('contact','Contact',90,1)
+('home','Home / Hero',10,1),('intro','What We Do',20,1),('about','About Us',30,1),('services','Services',40,1),('gallery','Gallery',50,1),('areas','Service Areas',60,1),('estimate','Free Estimate',70,1),('tips','Home Tips',80,1),('contact','Contact',90,1)
 ON DUPLICATE KEY UPDATE label=VALUES(label);
 INSERT INTO settings(setting_key,setting_value) VALUES
 ('seo_title','Castro''s Ready | Home Improvement'),
@@ -238,25 +238,191 @@ INSERT IGNORE INTO admin_role_permissions(role_id,permission_id) SELECT r.id,p.i
 INSERT IGNORE INTO admin_role_permissions(role_id,permission_id) SELECT r.id,p.id FROM admin_roles r JOIN admin_permissions p ON p.permission_key='notifications.view' WHERE r.role_key='viewer';
 INSERT IGNORE INTO admin_role_permissions(role_id,permission_id) SELECT r.id,p.id FROM admin_roles r CROSS JOIN admin_permissions p WHERE r.role_key='owner';
 
-ALTER TABLE admin_users
-  ADD COLUMN IF NOT EXISTS role_id INT UNSIGNED NULL AFTER password_hash,
-  ADD COLUMN IF NOT EXISTS active TINYINT(1) NOT NULL DEFAULT 1 AFTER role_id,
-  ADD COLUMN IF NOT EXISTS created_by INT UNSIGNED NULL AFTER active,
-  ADD COLUMN IF NOT EXISTS last_login_at DATETIME NULL AFTER created_by,
-  ADD COLUMN IF NOT EXISTS last_login_ip VARCHAR(64) NULL AFTER last_login_at,
-  ADD COLUMN IF NOT EXISTS last_user_agent VARCHAR(500) NULL AFTER last_login_ip,
-  ADD COLUMN IF NOT EXISTS two_factor_secret_enc TEXT NULL AFTER last_user_agent,
-  ADD COLUMN IF NOT EXISTS two_factor_enabled TINYINT(1) NOT NULL DEFAULT 0 AFTER two_factor_secret_enc,
-  ADD INDEX IF NOT EXISTS idx_admin_role_active(role_id,active);
+-- MySQL/MariaDB hosting compatibility:
+-- check information_schema before every ALTER instead of using
+-- ADD COLUMN/INDEX IF NOT EXISTS, which is unavailable on some servers.
+SET @cr_sql = IF(
+  EXISTS(
+    SELECT 1 FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='admin_users' AND COLUMN_NAME='role_id'
+  ),
+  'SELECT 1',
+  'ALTER TABLE admin_users ADD COLUMN role_id INT UNSIGNED NULL AFTER password_hash'
+);
+PREPARE cr_stmt FROM @cr_sql;
+EXECUTE cr_stmt;
+DEALLOCATE PREPARE cr_stmt;
+
+SET @cr_sql = IF(
+  EXISTS(
+    SELECT 1 FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='admin_users' AND COLUMN_NAME='active'
+  ),
+  'SELECT 1',
+  'ALTER TABLE admin_users ADD COLUMN active TINYINT(1) NOT NULL DEFAULT 1 AFTER role_id'
+);
+PREPARE cr_stmt FROM @cr_sql;
+EXECUTE cr_stmt;
+DEALLOCATE PREPARE cr_stmt;
+
+SET @cr_sql = IF(
+  EXISTS(
+    SELECT 1 FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='admin_users' AND COLUMN_NAME='created_by'
+  ),
+  'SELECT 1',
+  'ALTER TABLE admin_users ADD COLUMN created_by INT UNSIGNED NULL AFTER active'
+);
+PREPARE cr_stmt FROM @cr_sql;
+EXECUTE cr_stmt;
+DEALLOCATE PREPARE cr_stmt;
+
+SET @cr_sql = IF(
+  EXISTS(
+    SELECT 1 FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='admin_users' AND COLUMN_NAME='last_login_at'
+  ),
+  'SELECT 1',
+  'ALTER TABLE admin_users ADD COLUMN last_login_at DATETIME NULL AFTER created_by'
+);
+PREPARE cr_stmt FROM @cr_sql;
+EXECUTE cr_stmt;
+DEALLOCATE PREPARE cr_stmt;
+
+SET @cr_sql = IF(
+  EXISTS(
+    SELECT 1 FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='admin_users' AND COLUMN_NAME='last_login_ip'
+  ),
+  'SELECT 1',
+  'ALTER TABLE admin_users ADD COLUMN last_login_ip VARCHAR(64) NULL AFTER last_login_at'
+);
+PREPARE cr_stmt FROM @cr_sql;
+EXECUTE cr_stmt;
+DEALLOCATE PREPARE cr_stmt;
+
+SET @cr_sql = IF(
+  EXISTS(
+    SELECT 1 FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='admin_users' AND COLUMN_NAME='last_user_agent'
+  ),
+  'SELECT 1',
+  'ALTER TABLE admin_users ADD COLUMN last_user_agent VARCHAR(500) NULL AFTER last_login_ip'
+);
+PREPARE cr_stmt FROM @cr_sql;
+EXECUTE cr_stmt;
+DEALLOCATE PREPARE cr_stmt;
+
+SET @cr_sql = IF(
+  EXISTS(
+    SELECT 1 FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='admin_users' AND COLUMN_NAME='two_factor_secret_enc'
+  ),
+  'SELECT 1',
+  'ALTER TABLE admin_users ADD COLUMN two_factor_secret_enc TEXT NULL AFTER last_user_agent'
+);
+PREPARE cr_stmt FROM @cr_sql;
+EXECUTE cr_stmt;
+DEALLOCATE PREPARE cr_stmt;
+
+SET @cr_sql = IF(
+  EXISTS(
+    SELECT 1 FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='admin_users' AND COLUMN_NAME='two_factor_enabled'
+  ),
+  'SELECT 1',
+  'ALTER TABLE admin_users ADD COLUMN two_factor_enabled TINYINT(1) NOT NULL DEFAULT 0 AFTER two_factor_secret_enc'
+);
+PREPARE cr_stmt FROM @cr_sql;
+EXECUTE cr_stmt;
+DEALLOCATE PREPARE cr_stmt;
+
+SET @cr_sql = IF(
+  EXISTS(
+    SELECT 1 FROM information_schema.STATISTICS
+    WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='admin_users' AND INDEX_NAME='idx_admin_role_active'
+  ),
+  'SELECT 1',
+  'ALTER TABLE admin_users ADD INDEX idx_admin_role_active (role_id,active)'
+);
+PREPARE cr_stmt FROM @cr_sql;
+EXECUTE cr_stmt;
+DEALLOCATE PREPARE cr_stmt;
 
 ALTER TABLE estimate_requests
-  MODIFY COLUMN status ENUM('new','contacted','in_progress','won','lost','closed') NOT NULL DEFAULT 'new',
-  ADD COLUMN IF NOT EXISTS assigned_to INT UNSIGNED NULL AFTER status,
-  ADD COLUMN IF NOT EXISTS priority ENUM('low','normal','high','urgent') NOT NULL DEFAULT 'normal' AFTER assigned_to,
-  ADD COLUMN IF NOT EXISTS follow_up_date DATE NULL AFTER priority,
-  ADD COLUMN IF NOT EXISTS internal_notes TEXT NULL AFTER follow_up_date,
-  ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP AFTER created_at,
-  ADD INDEX IF NOT EXISTS idx_estimate_assigned(assigned_to,status,follow_up_date);
+  MODIFY COLUMN status ENUM('new','contacted','in_progress','won','lost','closed') NOT NULL DEFAULT 'new';
+
+SET @cr_sql = IF(
+  EXISTS(
+    SELECT 1 FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='estimate_requests' AND COLUMN_NAME='assigned_to'
+  ),
+  'SELECT 1',
+  'ALTER TABLE estimate_requests ADD COLUMN assigned_to INT UNSIGNED NULL AFTER status'
+);
+PREPARE cr_stmt FROM @cr_sql;
+EXECUTE cr_stmt;
+DEALLOCATE PREPARE cr_stmt;
+
+SET @cr_sql = IF(
+  EXISTS(
+    SELECT 1 FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='estimate_requests' AND COLUMN_NAME='priority'
+  ),
+  'SELECT 1',
+  'ALTER TABLE estimate_requests ADD COLUMN priority ENUM(''low'',''normal'',''high'',''urgent'') NOT NULL DEFAULT ''normal'' AFTER assigned_to'
+);
+PREPARE cr_stmt FROM @cr_sql;
+EXECUTE cr_stmt;
+DEALLOCATE PREPARE cr_stmt;
+
+SET @cr_sql = IF(
+  EXISTS(
+    SELECT 1 FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='estimate_requests' AND COLUMN_NAME='follow_up_date'
+  ),
+  'SELECT 1',
+  'ALTER TABLE estimate_requests ADD COLUMN follow_up_date DATE NULL AFTER priority'
+);
+PREPARE cr_stmt FROM @cr_sql;
+EXECUTE cr_stmt;
+DEALLOCATE PREPARE cr_stmt;
+
+SET @cr_sql = IF(
+  EXISTS(
+    SELECT 1 FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='estimate_requests' AND COLUMN_NAME='internal_notes'
+  ),
+  'SELECT 1',
+  'ALTER TABLE estimate_requests ADD COLUMN internal_notes TEXT NULL AFTER follow_up_date'
+);
+PREPARE cr_stmt FROM @cr_sql;
+EXECUTE cr_stmt;
+DEALLOCATE PREPARE cr_stmt;
+
+SET @cr_sql = IF(
+  EXISTS(
+    SELECT 1 FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='estimate_requests' AND COLUMN_NAME='updated_at'
+  ),
+  'SELECT 1',
+  'ALTER TABLE estimate_requests ADD COLUMN updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP AFTER created_at'
+);
+PREPARE cr_stmt FROM @cr_sql;
+EXECUTE cr_stmt;
+DEALLOCATE PREPARE cr_stmt;
+
+SET @cr_sql = IF(
+  EXISTS(
+    SELECT 1 FROM information_schema.STATISTICS
+    WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='estimate_requests' AND INDEX_NAME='idx_estimate_assigned'
+  ),
+  'SELECT 1',
+  'ALTER TABLE estimate_requests ADD INDEX idx_estimate_assigned (assigned_to,status,follow_up_date)'
+);
+PREPARE cr_stmt FROM @cr_sql;
+EXECUTE cr_stmt;
+DEALLOCATE PREPARE cr_stmt;
 
 UPDATE admin_users
 SET role_id=(SELECT id FROM admin_roles WHERE role_key='owner' LIMIT 1)
@@ -267,7 +433,17 @@ WHERE role_id IS NULL;
 -- CLIENT CONTENT UPDATE: SERVICE BADGES + MISSION/VISION ART + VIDEOS
 -- Safe to re-run: existing structures/content are preserved and duplicate seeds are skipped.
 -- ============================================================
-ALTER TABLE services ADD COLUMN IF NOT EXISTS icon_path VARCHAR(500) NULL AFTER details;
+SET @cr_sql = IF(
+  EXISTS(
+    SELECT 1 FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='services' AND COLUMN_NAME='icon_path'
+  ),
+  'SELECT 1',
+  'ALTER TABLE services ADD COLUMN icon_path VARCHAR(500) NULL AFTER details'
+);
+PREPARE cr_stmt FROM @cr_sql;
+EXECUTE cr_stmt;
+DEALLOCATE PREPARE cr_stmt;
 
 CREATE TABLE IF NOT EXISTS videos (
   id INT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -344,3 +520,55 @@ WHERE NOT EXISTS (SELECT 1 FROM videos WHERE video_url LIKE '%01nlW2CAMgA%');
 INSERT INTO videos(title,description,video_type,video_url,file_path,poster_path,sort_order,active)
 SELECT 'Project Highlight','', 'youtube','https://youtube.com/shorts/rIuzhI1PAL0?si=tn8Ny8yd7EpI2AmF',NULL,NULL,20,1
 WHERE NOT EXISTS (SELECT 1 FROM videos WHERE video_url LIKE '%rIuzhI1PAL0%');
+
+
+-- ============================================================
+-- PUBLIC LAYOUT: FREE ESTIMATE BEFORE HOME TIPS
+-- Applied once so later changes made in Section Manager remain intact.
+-- ============================================================
+UPDATE site_sections
+SET sort_order = CASE section_key
+  WHEN 'estimate' THEN 80
+  WHEN 'tips' THEN 90
+  ELSE sort_order
+END
+WHERE section_key IN ('estimate','tips')
+  AND NOT EXISTS (
+    SELECT 1
+    FROM settings
+    WHERE setting_key = 'layout_estimate_before_tips_20260903'
+  );
+
+INSERT INTO settings(setting_key,setting_value)
+VALUES ('layout_estimate_before_tips_20260903','1')
+ON DUPLICATE KEY UPDATE setting_value=setting_value;
+
+
+-- ============================================================
+-- PUBLIC MAP: CASTRO'S READY LOCATION
+-- Applied once so later map edits made in Service Areas remain intact.
+-- ============================================================
+SET @cr_apply_map_location_20260903 = (
+  SELECT COUNT(*) = 0
+  FROM settings
+  WHERE setting_key = 'service_map_location_20260903'
+);
+
+INSERT INTO settings(setting_key,setting_value)
+SELECT 'service_map_query','6624 Aspern Drive, Elkridge, MD 21075, United States'
+WHERE @cr_apply_map_location_20260903 = 1
+ON DUPLICATE KEY UPDATE setting_value=VALUES(setting_value);
+
+INSERT INTO settings(setting_key,setting_value)
+SELECT 'service_map_label','Castro''s Ready'
+WHERE @cr_apply_map_location_20260903 = 1
+ON DUPLICATE KEY UPDATE setting_value=VALUES(setting_value);
+
+INSERT INTO settings(setting_key,setting_value)
+SELECT 'service_map_enabled','1'
+WHERE @cr_apply_map_location_20260903 = 1
+ON DUPLICATE KEY UPDATE setting_value=VALUES(setting_value);
+
+INSERT INTO settings(setting_key,setting_value)
+VALUES ('service_map_location_20260903','1')
+ON DUPLICATE KEY UPDATE setting_value=setting_value;
