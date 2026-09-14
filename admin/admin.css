@@ -1799,6 +1799,14 @@ button:focus-visible,.button:focus-visible,a:focus-visible,summary:focus-visible
     outline:3px solid rgba(15,119,119,.18);
     outline-offset:2px
 }
+.email-method-fields:not([hidden]) {
+    display:grid;
+    gap:18px;
+    min-width:0
+}
+.email-method-fields .premium-switch {
+    margin-top:2px
+}
 .check-row:not(.premium-switch) {
     padding:11px 13px;
     border:1px solid var(--line);

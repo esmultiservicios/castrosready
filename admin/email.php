@@ -3,14 +3,24 @@ require __DIR__.'/bootstrap.php';
 require_permission('email.manage');
 require_once __DIR__.'/../core/EmailService.php';
 $pdo=db();
+$set=settings();
 $error='';
 if($_SERVER['REQUEST_METHOD']==='POST') {
     verify_csrf();
     $action=$_POST['action']??'';
     $id=(int)($_POST['id']??0);
     try {
-        if($action==='save') {
+        if($action==='recipients') {
+            $notification=trim((string)($_POST['estimate_notification_email']??''));
+            $copy=trim((string)($_POST['estimate_copy_email']??''));
+            if(!filter_var($notification,FILTER_VALIDATE_EMAIL))throw new RuntimeException('Enter a valid email that will receive estimate requests.');
+            if($copy!==''&&!filter_var($copy,FILTER_VALIDATE_EMAIL))throw new RuntimeException('Enter a valid optional copy email or leave it blank.');
+            save_setting('estimate_notification_email',$notification);
+            save_setting('estimate_copy_email',$copy);
+            flash('success','Estimate notification recipients saved.');
+        } elseif($action==='save') {
             $type=(int)($_POST['correo_tipo_id']??1);
+            $copySourceId=(int)($_POST['copy_source_id']??0);
             $method=in_array($_POST['metodo_envio']??'SMTP',['SMTP','GRAPH'],true)?$_POST['metodo_envio']:'SMTP';
             $server=trim((string)($_POST['server']??''));
             $email=trim((string)($_POST['correo']??''));
@@ -22,7 +32,13 @@ if($_SERVER['REQUEST_METHOD']==='POST') {
             $sent=isset($_POST['save_to_sent_items'])?1:0;
             $estado=isset($_POST['estado'])?1:2;
             if(!filter_var($email,FILTER_VALIDATE_EMAIL))throw new RuntimeException('Enter a valid sender email.');
-            $old=$id?(new EmailService())->configById($id):null;
+            $typeCheck=$pdo->prepare('SELECT COUNT(*) FROM correo_tipo WHERE correo_tipo_id=?');
+            $typeCheck->execute([$type]);
+            if((int)$typeCheck->fetchColumn()!==1)throw new RuntimeException('Select a valid destination email purpose.');
+            $mailer=new EmailService();
+            $old=$id?$mailer->configById($id):($copySourceId?$mailer->configById($copySourceId):null);
+            if(($id||$copySourceId)&&!$old)throw new RuntimeException('The source email configuration was not found.');
+            if($copySourceId&&(int)$old['correo_tipo_id']===$type)throw new RuntimeException('Choose a different email purpose for the copied connection.');
             $pass=trim((string)($_POST['password']??''));
             $secret=trim((string)($_POST['client_secret']??''));
             $passEnc=$pass!==''?secret_encrypt($pass):($old['password']??'');
@@ -31,6 +47,12 @@ if($_SERVER['REQUEST_METHOD']==='POST') {
                 $server='graph.microsoft.com';
                 $port=0;
                 $secure='';
+                if($graph==='')$graph=$email;
+                if($estado===1&&($tenant===''||$client===''||$secretEnc===''||!filter_var($graph,FILTER_VALIDATE_EMAIL)))throw new RuntimeException('Complete Tenant ID, Client ID, Client Secret VALUE and Graph mailbox before activating Microsoft Graph.');
+            } else {
+                if($port<1||$port>65535)throw new RuntimeException('Enter a valid SMTP port.');
+                if(!in_array($secure,['tls','ssl'],true))throw new RuntimeException('Select TLS or SSL for SMTP security.');
+                if($estado===1&&($server===''||$passEnc===''))throw new RuntimeException('Complete the SMTP server and app password before activating SMTP.');
             }
             if($id) {
                 $st=$pdo->prepare('UPDATE correo SET correo_tipo_id=?,metodo_envio=?,server=?,correo=?,password=?,port=?,smtp_secure=?,tenant_id=?,client_id=?,client_secret=?,graph_user=?,save_to_sent_items=?,estado=? WHERE correo_id=?');
@@ -45,12 +67,23 @@ if($_SERVER['REQUEST_METHOD']==='POST') {
                 $off=$pdo->prepare('UPDATE correo SET estado=2 WHERE correo_tipo_id=? AND correo_id<>?');
                 $off->execute([$type,$savedId]);
             }
-            flash('success','Email configuration saved.');
+            flash('success',$copySourceId?'Email configuration copied to the selected purpose.':'Email configuration saved.');
         } elseif($action==='delete'&&$id) {
             $pdo->prepare('DELETE FROM correo WHERE correo_id=?')->execute([$id]);
             flash('success','Email configuration deleted.');
         } elseif($action==='toggle'&&$id) {
-            $pdo->prepare('UPDATE correo SET estado=IF(estado=1,2,1) WHERE correo_id=?')->execute([$id]);
+            $row=(new EmailService())->configById($id);
+            if(!$row)throw new RuntimeException('Email configuration not found.');
+            $newStatus=(int)$row['estado']===1?2:1;
+            if($newStatus===1) {
+                validate_email_configuration($row);
+                $pdo->beginTransaction();
+                $pdo->prepare('UPDATE correo SET estado=2 WHERE correo_tipo_id=? AND correo_id<>?')->execute([(int)$row['correo_tipo_id'],$id]);
+                $pdo->prepare('UPDATE correo SET estado=1 WHERE correo_id=?')->execute([$id]);
+                $pdo->commit();
+            } else {
+                $pdo->prepare('UPDATE correo SET estado=2 WHERE correo_id=?')->execute([$id]);
+            }
             flash('success','Email status updated.');
         } elseif($action==='test'&&$id) {
             $res=(new EmailService())->test($id,trim((string)($_POST['test_to']??'')));
@@ -59,14 +92,49 @@ if($_SERVER['REQUEST_METHOD']==='POST') {
         header('Location: email.php'.($id?'?edit='.$id:''));
         exit;
     } catch(Throwable $e) {
+        if($pdo->inTransaction())$pdo->rollBack();
         $error=$e->getMessage();
     }
 }
+$set=settings();
 $types=$pdo->query('SELECT * FROM correo_tipo ORDER BY correo_tipo_id')->fetchAll();
 $rows=$pdo->query('SELECT c.*,t.nombre tipo_nombre FROM correo c JOIN correo_tipo t ON t.correo_tipo_id=c.correo_tipo_id ORDER BY c.correo_id DESC')->fetchAll();
 $edit=null;
+$isCopy=false;
+$copySource=null;
 if(isset($_GET['edit'])) {
     $edit=(new EmailService())->configById((int)$_GET['edit']);
+} elseif(isset($_GET['copy'])) {
+    $copySource=(new EmailService())->configById((int)$_GET['copy']);
+    if($copySource) {
+        $edit=$copySource;
+        $isCopy=true;
+        $sourceTypeId=(int)$copySource['correo_tipo_id'];
+        $availableTypeIds=array_map(static fn($type)=>(int)$type['correo_tipo_id'],$types);
+        $configuredTypeIds=array_map(static fn($row)=>(int)$row['correo_tipo_id'],$rows);
+        $destinationPriority=[3,4,2,1];
+        $destinationTypeId=0;
+
+        foreach($destinationPriority as $candidateTypeId) {
+            if($candidateTypeId!==$sourceTypeId
+                &&in_array($candidateTypeId,$availableTypeIds,true)
+                &&!in_array($candidateTypeId,$configuredTypeIds,true)) {
+                $destinationTypeId=$candidateTypeId;
+                break;
+            }
+        }
+
+        if($destinationTypeId===0) {
+            foreach($destinationPriority as $candidateTypeId) {
+                if($candidateTypeId!==$sourceTypeId&&in_array($candidateTypeId,$availableTypeIds,true)) {
+                    $destinationTypeId=$candidateTypeId;
+                    break;
+                }
+            }
+        }
+
+        $edit['correo_tipo_id']=$destinationTypeId;
+    }
 }
 $pageTitle='Email Configuration';
 $active='email';
@@ -93,20 +161,56 @@ endif;
 <div class="panel-icon"><?=icon('mail')?>
 </div>
 <div>
-<h2><?=$edit?'Edit configuration':'Add email configuration'?>
+<h2>Estimate notification recipients</h2>
+<p>The first address receives every website request. The optional copy is useful for supervision and can be changed at any time.</p>
+</div>
+</div>
+<form method="post">
+<input type="hidden" name="csrf" value="<?=h(csrf_token())?>">
+<input type="hidden" name="action" value="recipients">
+<div class="two-col">
+<label>Send new requests to<input type="email" name="estimate_notification_email" required value="<?=h($set['estimate_notification_email']??($set['email']??'castrosreadycompany@gmail.com'))?>" placeholder="castrosreadycompany@gmail.com">
+<small>This is the internal Castro's Ready inbox that receives the complete request.</small>
+</label>
+<label>Optional copy to<input type="email" name="estimate_copy_email" value="<?=h($set['estimate_copy_email']??'')?>" placeholder="Optional supervision email">
+<small>Leave blank when no additional copy is needed.</small>
+</label>
+</div>
+<div class="form-actions"><button>Save notification recipients</button></div>
+</form>
+</section>
+
+<section class="panel animate-in">
+<div class="panel-heading">
+<div class="panel-icon"><?=icon('mail')?>
+</div>
+<div>
+<h2><?=$isCopy?'Copy configuration':($edit?'Edit configuration':'Add email configuration')?>
 </h2>
-<p>Secrets are encrypted before they are stored in MySQL.</p>
+<p><?=$isCopy?'A destination purpose is selected automatically. The connection data and encrypted credentials will be reused.':'Secrets are encrypted before they are stored in MySQL.'?></p>
 </div>
 </div>
+<?php if($isCopy): ?>
+<div class="info-strip">
+<strong>Copying <?=h($copySource['metodo_envio'])?> connection</strong>
+<span>Select where else this connection should be used. The original connection will remain unchanged.</span>
+</div>
+<?php endif; ?>
 <form method="post">
 <input type="hidden" name="csrf" value="<?=h(csrf_token())?>
 ">
 <input type="hidden" name="action" value="save">
-<input type="hidden" name="id" value="<?=h((string)($edit['correo_id']??0))?>
+<input type="hidden" name="id" value="<?=h((string)($isCopy?0:($edit['correo_id']??0)))?>
 ">
+<input type="hidden" name="copy_source_id" value="<?=h((string)($isCopy?($copySource['correo_id']??0):0))?>">
 <div class="three-col">
-<label>Email purpose<select name="correo_tipo_id"><?php
+<label>Email purpose<select name="correo_tipo_id" required><?php
+if($isCopy&&empty($edit['correo_tipo_id'])):
+?>
+<option value="" selected disabled>Choose destination purpose</option><?php
+endif;
 foreach($types as $t):
+if($isCopy&&(int)$t['correo_tipo_id']===(int)$copySource['correo_tipo_id'])continue;
 ?>
 <option value="<?=$t['correo_tipo_id']?>
 " <?=($edit['correo_tipo_id']??1)==$t['correo_tipo_id']?'selected':''?>
@@ -134,12 +238,13 @@ endforeach;
 </span>
 </label>
 </div>
-<label>Sender email<input type="email" name="correo" required value="<?=h($edit['correo']??'')?>
+<label>Sender email<input type="email" name="correo" required value="<?=h($edit['correo']??($set['email']??'castrosreadycompany@gmail.com'))?>
 ">
+<small>The messages are sent under Castro's Ready branding from this account.</small>
 </label>
-<div data-method="SMTP">
+<div class="email-method-fields" data-method="SMTP">
 <div class="three-col">
-<label>SMTP server<input name="server" value="<?=h(($edit['metodo_envio']??'SMTP')==='SMTP'?($edit['server']??''):'')?>
+<label>SMTP server<input name="server" value="<?=h(($edit['metodo_envio']??'SMTP')==='SMTP'?($edit['server']??'smtp.gmail.com'):'')?>
 ">
 </label>
 <label>Port<input type="number" name="port" value="<?=h((string)($edit['port']??587))?>
@@ -155,9 +260,10 @@ endforeach;
 </div>
 <label>SMTP password<input type="password" name="password" autocomplete="new-password" placeholder="<?=$edit?'Leave blank to keep saved password':'SMTP password'?>
 ">
+<small>For Gmail, use an App Password generated after enabling two-step verification. Do not enter the normal Gmail password.</small>
 </label>
 </div>
-<div data-method="GRAPH">
+<div class="email-method-fields" data-method="GRAPH">
 <div class="two-col">
 <label>Tenant ID<input name="tenant_id" value="<?=h($edit['tenant_id']??'')?>
 ">
@@ -168,6 +274,7 @@ endforeach;
 </div>
 <label>Client Secret VALUE<input type="password" name="client_secret" placeholder="<?=$edit?'Leave blank to keep saved secret':'Microsoft Entra client secret'?>
 ">
+<small>Graph uses the Microsoft Entra application secret; it never requires the mailbox password.</small>
 </label>
 <label>Graph User / mailbox<input type="email" name="graph_user" value="<?=h($edit['graph_user']??'')?>
 ">
@@ -187,14 +294,14 @@ endforeach;
 <button>Save email configuration</button><?php
 if($edit):
 ?>
-<a class="button secondary" href="email.php">Cancel edit</a><?php
+<a class="button secondary" href="email.php"><?=$isCopy?'Cancel copy':'Cancel edit'?></a><?php
 endif;
 ?>
 </div>
 </form>
 </section>
 <?php
-if($edit):
+if($edit&&!$isCopy):
 ?>
 <section class="panel email-test-panel animate-in">
 <div class="panel-heading">
@@ -276,6 +383,7 @@ foreach($rows as $r):
 <nav>
 <a href="?edit=<?=$r['correo_id']?>
 ">Edit</a>
+<a href="?copy=<?=$r['correo_id']?>">Copy to another purpose</a>
 <form method="post">
 <input type="hidden" name="csrf" value="<?=h(csrf_token())?>
 ">

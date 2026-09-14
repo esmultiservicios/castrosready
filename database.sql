@@ -240,6 +240,8 @@ INSERT INTO settings(setting_key,setting_value) VALUES
 ('phone','+1 (202) 644-2717'),
 ('phone_digits','12026442717'),
 ('email','castrosreadycompany@gmail.com'),
+('estimate_notification_email','castrosreadycompany@gmail.com'),
+('estimate_copy_email',''),
 ('youtube','https://www.youtube.com/@CastrosReady'),
 ('facebook','#'),('tiktok','#'),('website','castrosready.us'),('business_hours',''),
 ('admin_brand_name','Castro''s Ready Admin'),('admin_logo_path','assets/logo.jpg'),('favicon_path','assets/logo.jpg'),

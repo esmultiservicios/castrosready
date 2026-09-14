@@ -122,6 +122,19 @@ function secret_decrypt(?string $value): string {
     $plain=openssl_decrypt($cipher,'aes-256-gcm',app_key(),OPENSSL_RAW_DATA,$iv,$tag);
     return $plain===false?'':$plain;
 }
+function validate_email_configuration(array $config): void {
+    $method=strtoupper(trim((string)($config['metodo_envio']??'SMTP')));
+    $sender=trim((string)($config['correo']??''));
+    if(!filter_var($sender,FILTER_VALIDATE_EMAIL))throw new RuntimeException('The sender email is not valid.');
+    if($method==='GRAPH') {
+        $graphUser=trim((string)($config['graph_user']??$sender));
+        if(trim((string)($config['tenant_id']??''))===''||trim((string)($config['client_id']??''))===''||secret_decrypt($config['client_secret']??'')===''||!filter_var($graphUser,FILTER_VALIDATE_EMAIL))throw new RuntimeException('Microsoft Graph configuration is incomplete.');
+        return;
+    }
+    $port=(int)($config['port']??0);
+    $secure=strtolower(trim((string)($config['smtp_secure']??'')));
+    if(trim((string)($config['server']??''))===''||secret_decrypt($config['password']??'')===''||$port<1||$port>65535||!in_array($secure,['tls','ssl'],true))throw new RuntimeException('SMTP configuration is incomplete.');
+}
 function gallery_fallback(int $index): string {
     $images=[ 'https://images.unsplash.com/photo-1503387762-592deb58ef4e?auto=format&fit=crop&w=1100&q=85',
     'https://images.unsplash.com/photo-1562259949-e8e7689d7828?auto=format&fit=crop&w=900&q=85',

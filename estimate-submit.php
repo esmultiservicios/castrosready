@@ -42,12 +42,22 @@ try {
     $set=settings();
     try {
         $mailer=new EmailService();
-        $adminTo=$set['email']??'';
-        if(filter_var($adminTo,FILTER_VALIDATE_EMAIL))$mailer->sendWithFallback([3,1],$adminTo,"New Castro's Ready estimate request",EmailTemplates::estimateAdmin($request,$set));
-        if(filter_var($email,FILTER_VALIDATE_EMAIL)) {
-            $mailer->sendWithFallback([4,1],$email,"We received your Castro's Ready request",EmailTemplates::estimateCustomer($request,$set));
+        $adminTo=trim((string)($set['estimate_notification_email']??($set['email']??'')));
+        $copyTo=trim((string)($set['estimate_copy_email']??''));
+        $adminResult=['success'=>false,'message'=>'No valid estimate notification email is configured.'];
+        if(filter_var($adminTo,FILTER_VALIDATE_EMAIL)) {
+            $adminResult=$mailer->sendWithFallback([3,1],$adminTo,"New Castro's Ready estimate request",EmailTemplates::estimateAdmin($request,$set),$email);
         }
+        if(filter_var($copyTo,FILTER_VALIDATE_EMAIL)&&strcasecmp($copyTo,$adminTo)!==0) {
+            $mailer->sendWithFallback([3,1],$copyTo,"Copy: New Castro's Ready estimate request",EmailTemplates::estimateAdmin($request,$set),$email);
+        }
+        if(filter_var($email,FILTER_VALIDATE_EMAIL)) {
+            $customerResult=$mailer->sendWithFallback([4,1],$email,"We received your Castro's Ready request",EmailTemplates::estimateCustomer($request,$set));
+            if(!$customerResult['success'])admin_notify('warning','Customer confirmation not sent','Estimate #'.$id.' was saved, but its automatic confirmation email could not be delivered.','email.php');
+        }
+        if(!$adminResult['success'])admin_notify('warning','Estimate email not sent','Estimate #'.$id.' was saved, but the notification email could not be delivered.','email.php');
     } catch(Throwable $mailError) {
+        admin_notify('warning','Estimate email error','Estimate #'.$id.' was saved, but email delivery raised an error.','email.php');
     }
     echo json_encode(['ok'=>true,'message'=>'Thank you. Your free estimate request has been received.','request_id'=>$id]);
 } catch(Throwable $e) {

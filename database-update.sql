@@ -6,6 +6,95 @@
 
 SET NAMES utf8mb4;
 
+-- EMAIL DELIVERY: SMTP / MICROSOFT GRAPH
+-- Creates the structures only when an older production database does not have them.
+CREATE TABLE IF NOT EXISTS correo_tipo (
+  correo_tipo_id INT NOT NULL,
+  nombre VARCHAR(30) NOT NULL,
+  PRIMARY KEY (correo_tipo_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS correo (
+  correo_id INT NOT NULL AUTO_INCREMENT COMMENT 'Identificador unico de la configuracion de correo',
+  correo_tipo_id INT NOT NULL COMMENT 'Tipo de correo',
+  metodo_envio ENUM('SMTP','GRAPH') NOT NULL DEFAULT 'SMTP' COMMENT 'SMTP o Microsoft Graph',
+  server VARCHAR(150) NOT NULL DEFAULT '' COMMENT 'Servidor SMTP o graph.microsoft.com',
+  correo VARCHAR(180) NOT NULL COMMENT 'Correo emisor',
+  password TEXT NULL COMMENT 'Contrasena SMTP cifrada',
+  port INT NOT NULL DEFAULT 587 COMMENT 'Puerto SMTP; Graph usa 0',
+  smtp_secure VARCHAR(10) NOT NULL DEFAULT 'tls' COMMENT 'tls o ssl',
+  tenant_id VARCHAR(150) DEFAULT NULL,
+  client_id VARCHAR(150) DEFAULT NULL,
+  client_secret TEXT NULL COMMENT 'Client secret cifrado',
+  graph_user VARCHAR(180) DEFAULT NULL,
+  save_to_sent_items TINYINT(1) NOT NULL DEFAULT 1,
+  estado TINYINT NOT NULL DEFAULT 1 COMMENT '1 Activo, 2 Inactivo',
+  fecha_registro DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (correo_id),
+  KEY idx_correo_tipo_estado (correo_tipo_id,estado)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+SET @cr_sql = IF(
+  EXISTS(
+    SELECT 1 FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='correo_tipo' AND COLUMN_NAME='nombre'
+      AND CHARACTER_MAXIMUM_LENGTH < 30
+  ),
+  'ALTER TABLE correo_tipo MODIFY COLUMN nombre VARCHAR(30) NOT NULL',
+  'SELECT 1'
+);
+PREPARE cr_stmt FROM @cr_sql;
+EXECUTE cr_stmt;
+DEALLOCATE PREPARE cr_stmt;
+
+SET @cr_sql = IF(
+  EXISTS(
+    SELECT 1 FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='correo' AND COLUMN_NAME='correo_id'
+      AND EXTRA NOT LIKE '%auto_increment%'
+  ),
+  'ALTER TABLE correo MODIFY COLUMN correo_id INT NOT NULL AUTO_INCREMENT',
+  'SELECT 1'
+);
+PREPARE cr_stmt FROM @cr_sql;
+EXECUTE cr_stmt;
+DEALLOCATE PREPARE cr_stmt;
+
+SET @cr_sql = IF(
+  EXISTS(
+    SELECT 1 FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='correo' AND COLUMN_NAME='updated_at'
+  ),
+  'SELECT 1',
+  'ALTER TABLE correo ADD COLUMN updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP AFTER fecha_registro'
+);
+PREPARE cr_stmt FROM @cr_sql;
+EXECUTE cr_stmt;
+DEALLOCATE PREPARE cr_stmt;
+
+SET @cr_sql = IF(
+  EXISTS(
+    SELECT 1 FROM information_schema.STATISTICS
+    WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='correo' AND INDEX_NAME='idx_correo_tipo_estado'
+  ),
+  'SELECT 1',
+  'ALTER TABLE correo ADD INDEX idx_correo_tipo_estado (correo_tipo_id,estado)'
+);
+PREPARE cr_stmt FROM @cr_sql;
+EXECUTE cr_stmt;
+DEALLOCATE PREPARE cr_stmt;
+
+INSERT INTO correo_tipo (correo_tipo_id,nombre) VALUES
+(1,'Website Alerts'),(2,'Admin Security'),(3,'Estimate Requests'),(4,'Auto Replies')
+ON DUPLICATE KEY UPDATE nombre=VALUES(nombre);
+
+INSERT INTO settings(setting_key,setting_value) VALUES
+('email','castrosreadycompany@gmail.com'),
+('estimate_notification_email','castrosreadycompany@gmail.com'),
+('estimate_copy_email','')
+ON DUPLICATE KEY UPDATE setting_value=setting_value;
+
 CREATE TABLE IF NOT EXISTS content_drafts (
   content_key VARCHAR(100) NOT NULL,
   content_value TEXT NULL,

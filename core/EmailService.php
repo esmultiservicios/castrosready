@@ -13,17 +13,17 @@ class EmailService {
         $st->execute([$id]);
         return $st->fetch()?:null;
     }
-    public function sendByType(int $type,string $to,string $subject,string $html):array {
+    public function sendByType(int $type,string $to,string $subject,string $html,string $replyTo=''):array {
         $cfg=$this->configByType($type);
         if(!$cfg)return ['success'=>false,
         'message'=>'No active email configuration for this type.'];
-        return $this->send($cfg,$to,$subject,$html);
+        return $this->send($cfg,$to,$subject,$html,$replyTo);
     }
-    public function sendWithFallback(array $types,string $to,string $subject,string $html):array {
+    public function sendWithFallback(array $types,string $to,string $subject,string $html,string $replyTo=''):array {
         foreach($types as $type) {
             $cfg=$this->configByType((int)$type);
             if($cfg) {
-                $result=$this->send($cfg,$to,$subject,$html);
+                $result=$this->send($cfg,$to,$subject,$html,$replyTo);
                 if($result['success'])return $result;
                 $last=$result;
             }
@@ -38,12 +38,15 @@ class EmailService {
         $dest=$to!==''?$to:$cfg['correo'];
         return $this->send($cfg,$dest,'Castro\'s Ready email test',EmailTemplates::test($cfg['metodo_envio'],settings()));
     }
-    public function send(array $cfg,string $to,string $subject,string $html):array {
+    public function send(array $cfg,string $to,string $subject,string $html,string $replyTo=''):array {
         if(!filter_var($to,FILTER_VALIDATE_EMAIL))return ['success'=>false,
         'message'=>'Invalid destination email.'];
-        return strtoupper($cfg['metodo_envio'])==='GRAPH'?$this->graph($cfg,$to,$subject,$html):$this->smtp($cfg,$to,$subject,$html);
+        $replyTo=filter_var($replyTo,FILTER_VALIDATE_EMAIL)?strtolower(trim($replyTo)):'';
+        return strtoupper((string)$cfg['metodo_envio'])==='GRAPH'
+            ?$this->graph($cfg,$to,$subject,$html,$replyTo)
+            :$this->smtp($cfg,$to,$subject,$html,$replyTo);
     }
-    private function graph(array $c,string $to,string $subject,string $html):array {
+    private function graph(array $c,string $to,string $subject,string $html,string $replyTo=''):array {
         if(!function_exists('curl_init'))return ['success'=>false,
         'message'=>'cURL is not enabled on this server.'];
         $tenant=trim((string)$c['tenant_id']);
@@ -61,7 +64,11 @@ class EmailService {
         $json=json_decode((string)$raw,true);
         if($code<200||$code>=300||empty($json['access_token']))return ['success'=>false,
         'message'=>'Graph token error: '.($err?:('HTTP '.$code))];
-        $payload=['message'=>['subject'=>$subject,'body'=>['contentType'=>'HTML','content'=>$html],'toRecipients'=>[['emailAddress'=>['address'=>$to]]]],
+        $message=['subject'=>$subject,
+        'body'=>['contentType'=>'HTML','content'=>$html],
+        'toRecipients'=>[['emailAddress'=>['address'=>$to]]]];
+        if($replyTo!=='')$message['replyTo']=[['emailAddress'=>['address'=>$replyTo]]];
+        $payload=['message'=>$message,
         'saveToSentItems'=>(int)($c['save_to_sent_items']??1)===1];
         $ch=curl_init('https://graph.microsoft.com/v1.0/users/'.rawurlencode($from).'/sendMail');
         curl_setopt_array($ch,[CURLOPT_POST=>true,CURLOPT_RETURNTRANSFER=>true,CURLOPT_TIMEOUT=>45,CURLOPT_POSTFIELDS=>json_encode($payload,JSON_UNESCAPED_UNICODE),CURLOPT_HTTPHEADER=>['Authorization: Bearer '.$json['access_token'],'Content-Type: application/json']]);
@@ -73,7 +80,7 @@ class EmailService {
         'message'=>'Email sent with Microsoft Graph.']:['success'=>false,
         'message'=>'Graph send error: '.($err?:('HTTP '.$code.' '.$resp))];
     }
-    private function smtp(array $c,string $to,string $subject,string $html):array {
+    private function smtp(array $c,string $to,string $subject,string $html,string $replyTo=''):array {
         $host=trim((string)$c['server']);
         $port=(int)($c['port']?:587);
         $secure=strtolower(trim((string)$c['smtp_secure']));
@@ -88,11 +95,12 @@ class EmailService {
         stream_set_timeout($fp,20);
         try {
             $this->expect($fp,[220]);
-            $this->cmd($fp,'EHLO '.($_SERVER['HTTP_HOST']??'localhost'),[250]);
+            $ehloHost=preg_replace('/[^a-z0-9.-]/i','',(string)($_SERVER['HTTP_HOST']??'localhost'))?:'localhost';
+            $this->cmd($fp,'EHLO '.$ehloHost,[250]);
             if($secure==='tls') {
                 $this->cmd($fp,'STARTTLS',[220]);
                 if(!stream_socket_enable_crypto($fp,true,STREAM_CRYPTO_METHOD_TLS_CLIENT))throw new RuntimeException('Unable to enable TLS.');
-                $this->cmd($fp,'EHLO '.($_SERVER['HTTP_HOST']??'localhost'),[250]);
+                $this->cmd($fp,'EHLO '.$ehloHost,[250]);
             }
             $this->cmd($fp,'AUTH LOGIN',[334]);
             $this->cmd($fp,base64_encode($user),[334]);
@@ -107,6 +115,7 @@ class EmailService {
             'MIME-Version: 1.0',
             'Content-Type: text/html; charset=UTF-8',
             'Content-Transfer-Encoding: base64'];
+            if($replyTo!=='')$headers[]='Reply-To: <'.$replyTo.'>';
             $body=implode("\r\n",$headers)."\r\n\r\n".chunk_split(base64_encode($html))."\r\n.";
             fwrite($fp,$body."\r\n");
             $this->expect($fp,[250]);
