@@ -61,6 +61,7 @@ require __DIR__.'/_header.php';
 <h1>Site readiness check</h1>
 <p class="muted">A practical checklist showing what is ready and what needs attention.</p>
 </div>
+<a class="button" href="health.php?recheck=<?=time()?>#server-requirements">↻ Recheck server</a>
 </div>
 <div class="health-hero">
 <div class="health-score">
