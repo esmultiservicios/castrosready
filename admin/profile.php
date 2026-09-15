@@ -11,7 +11,9 @@ if($_SERVER['REQUEST_METHOD']==='POST') {
     verify_csrf();
     $action=(string)($_POST['action']??'');
     $current=(string)($_POST['current_password']??'');
-    if(!password_verify($current,$row['password_hash']))$error='Current password is incorrect.';
+    $passwordActions=['profile','password','prepare_2fa','disable_2fa','reset_admin'];
+
+    if(in_array($action,$passwordActions,true)&&!password_verify($current,$row['password_hash']))$error='Current password is incorrect.';
     elseif($action==='profile') {
         $username=trim((string)($_POST['username']??''));
         $full=trim((string)($_POST['full_name']??''));
@@ -44,16 +46,22 @@ if($_SERVER['REQUEST_METHOD']==='POST') {
         }
     } elseif($action==='prepare_2fa') {
         $_SESSION['cr_pending_totp_secret']=new_totp_secret();
-        flash('success','Authenticator setup key generated. Add it to your authenticator app, then verify a code.');
+        $_SESSION['cr_2fa_setup_verified_at']=time();
+        flash('success','Password verified. Scan the QR code or use the setup link, then enter the current 6-digit code.');
         header('Location: profile.php#two-factor');
         exit;
     } elseif($action==='enable_2fa') {
         $secret=(string)($_SESSION['cr_pending_totp_secret']??'');
+        $verifiedAt=(int)($_SESSION['cr_2fa_setup_verified_at']??0);
         $code=trim((string)($_POST['totp_code']??''));
-        if($secret===''||!verify_totp($secret,$code))$error='The authenticator code is not valid. Generate a setup key and enter the current 6-digit code.';
-        else {
+        if($secret===''||$verifiedAt<=0||(time()-$verifiedAt)>600) {
+            unset($_SESSION['cr_pending_totp_secret'],$_SESSION['cr_2fa_setup_verified_at']);
+            $error='For security, the authenticator setup session expired. Enter your password once to start again.';
+        } elseif(!verify_totp($secret,$code)) {
+            $error='The authenticator code is not valid. Enter the current 6-digit code shown in your authenticator app.';
+        } else {
             $pdo->prepare('UPDATE admin_users SET two_factor_secret_enc=?,two_factor_enabled=1 WHERE id=?')->execute([secret_encrypt($secret),$row['id']]);
-            unset($_SESSION['cr_pending_totp_secret']);
+            unset($_SESSION['cr_pending_totp_secret'],$_SESSION['cr_2fa_setup_verified_at']);
             log_activity('2fa_enable','Enabled two-factor authentication');
             admin_notify('success','Two-factor authentication enabled','Two-factor authentication was enabled for '.$row['username'].'.','profile.php');
             flash('success','Two-factor authentication is now enabled.');
@@ -62,7 +70,7 @@ if($_SERVER['REQUEST_METHOD']==='POST') {
         }
     } elseif($action==='disable_2fa') {
         $pdo->prepare('UPDATE admin_users SET two_factor_secret_enc=NULL,two_factor_enabled=0 WHERE id=?')->execute([$row['id']]);
-        unset($_SESSION['cr_pending_totp_secret']);
+        unset($_SESSION['cr_pending_totp_secret'],$_SESSION['cr_2fa_setup_verified_at']);
         log_activity('2fa_disable','Disabled two-factor authentication');
         admin_notify('warning','Two-factor authentication disabled','Two-factor authentication was disabled for '.$row['username'].'.','profile.php');
         flash('success','Two-factor authentication disabled.');
@@ -187,51 +195,52 @@ endif;
 </div><?php
 $twoFactor=(int)($row['two_factor_enabled']??0)===1;
 $pendingSecret=(string)($_SESSION['cr_pending_totp_secret']??'');
+$setupVerifiedAt=(int)($_SESSION['cr_2fa_setup_verified_at']??0);
+if(!$twoFactor&&$pendingSecret!==''&&($setupVerifiedAt<=0||(time()-$setupVerifiedAt)>600)) {
+    unset($_SESSION['cr_pending_totp_secret'],$_SESSION['cr_2fa_setup_verified_at']);
+    $pendingSecret='';
+}
 ?>
 <div class="two-factor-status">
-<span class="badge <?=$twoFactor?'success':'closed'?>
-"><?=$twoFactor?'Enabled':'Not enabled'?>
-</span>
-<p class="muted"><?=$twoFactor?'Your account requires an authenticator code at sign-in.':'Recommended for Owner and Administrator accounts.'?>
-</p>
+<span class="badge <?=$twoFactor?'success':'closed'?>"><?=$twoFactor?'Enabled':'Not enabled'?></span>
+<p class="muted"><?=$twoFactor?'Your account requires an authenticator code at sign-in.':'Recommended for Owner and Administrator accounts.'?></p>
 </div><?php
 if(!$twoFactor&&!$pendingSecret):
 ?>
 <form method="post">
-<input type="hidden" name="csrf" value="<?=h(csrf_token())?>
-">
+<input type="hidden" name="csrf" value="<?=h(csrf_token())?>">
 <input type="hidden" name="action" value="prepare_2fa">
-<label>Current password<input type="password" name="current_password" required autocomplete="current-password">
-</label>
+<label>Current password<input type="password" name="current_password" required autocomplete="current-password"></label>
+<p class="muted form-helper">Your password is requested only once to unlock the secure setup screen.</p>
 <div class="form-actions">
 <button>Set up authenticator</button>
 </div>
 </form><?php
 elseif(!$twoFactor):
+$issuerName=setting('admin_brand_name',"Castro's Ready Admin");
+$accountName=(string)($row['email']?:$row['username']);
+$uri='otpauth://totp/'.rawurlencode($issuerName).':'.rawurlencode($accountName).'?secret='.rawurlencode($pendingSecret).'&issuer='.rawurlencode($issuerName).'&digits=6&period=30';
 ?>
-<?php
-$issuer=rawurlencode(setting('admin_brand_name',"Castro's Ready Admin"));
-$account=rawurlencode($row['email']?:$row['username']);
-$uri='otpauth://totp/'.$issuer.':'.$account.'?secret='.rawurlencode($pendingSecret).'&issuer='.$issuer.'&digits=6&period=30';
-?>
+<div class="totp-setup-grid">
+<div class="totp-qr-card">
+<small>SCAN WITH YOUR AUTHENTICATOR APP</small>
+<div class="totp-qr" data-totp-qr="<?=h($uri)?>" aria-live="polite"></div>
+<p>Scan this QR code with Google Authenticator, Microsoft Authenticator, 1Password or another TOTP-compatible app.</p>
+</div>
 <div class="totp-setup">
 <div>
 <small>MANUAL SETUP KEY</small>
-<code><?=h($pendingSecret)?>
-</code>
-<p>Add this key to Google Authenticator, Microsoft Authenticator, 1Password or another TOTP app.</p>
-<a class="button secondary small" href="<?=h($uri)?>
-">Open authenticator app</a>
+<code><?=h($pendingSecret)?></code>
+<p>If you are setting this up from your phone, use the secure link below. On desktop, you can scan the QR code.</p>
+<a class="button secondary small" href="<?=h($uri)?>">Open authenticator app</a>
+</div>
 </div>
 </div>
 <form method="post">
-<input type="hidden" name="csrf" value="<?=h(csrf_token())?>
-">
+<input type="hidden" name="csrf" value="<?=h(csrf_token())?>">
 <input type="hidden" name="action" value="enable_2fa">
-<label>Current password<input type="password" name="current_password" required>
-</label>
-<label>6-digit code<input class="totp-input" name="totp_code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" required>
-</label>
+<p class="muted form-helper secure-setup-note">Password already verified for this setup session. Enter only the current code from your authenticator app.</p>
+<label>6-digit code<input class="totp-input" name="totp_code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" required autofocus></label>
 <div class="form-actions">
 <button>Verify & enable 2FA</button>
 </div>
@@ -239,11 +248,9 @@ $uri='otpauth://totp/'.$issuer.':'.$account.'?secret='.rawurlencode($pendingSecr
 else:
 ?>
 <form method="post" data-swal-confirm="Disable two-factor authentication?" data-swal-text="Your account will return to password-only sign-in.">
-<input type="hidden" name="csrf" value="<?=h(csrf_token())?>
-">
+<input type="hidden" name="csrf" value="<?=h(csrf_token())?>">
 <input type="hidden" name="action" value="disable_2fa">
-<label>Current password<input type="password" name="current_password" required>
-</label>
+<label>Current password<input type="password" name="current_password" required autocomplete="current-password"></label>
 <div class="form-actions">
 <button class="button danger-lite">Disable 2FA</button>
 </div>
@@ -281,5 +288,15 @@ if(role_is_owner()):
 endif;
 ?>
 </div>
+<?php if(!$twoFactor&&$pendingSecret!==''): ?>
+<script src="<?=h(versioned_asset('../assets/vendor/qrcode-local.js', 'assets/vendor/qrcode-local.js'))?>"></script>
+<script>
+document.addEventListener('DOMContentLoaded',function(){
+    document.querySelectorAll('[data-totp-qr]').forEach(function(target){
+        if(window.CRQRCode&&target.dataset.totpQr)window.CRQRCode.renderSvg(target,target.dataset.totpQr);
+    });
+});
+</script>
+<?php endif; ?>
 <?php
 require __DIR__.'/_footer.php';

@@ -2,6 +2,11 @@
 declare(strict_types=1);
 session_start();
 require __DIR__.'/config/bootstrap.php';
+if (!headers_sent()) {
+    header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+    header('Pragma: no-cache');
+    header('Expires: 0');
+}
 if(!config_ready()) {
     header('Location: install/');
     exit;
@@ -290,7 +295,7 @@ if($fontHref!==''):
 endif;
 ?>
 
-<link rel="stylesheet" href="assets/site.css">
+<link rel="stylesheet" href="<?=h(versioned_asset('assets/site.css', 'assets/site.css'))?>">
 <style>
 :root {
   --font-heading: <?= $fontCatalog[$headingFont] ?>;
@@ -863,7 +868,7 @@ if(($settings['whatsapp_enabled']??'1')==='1'):
 endif;
 ?>
 
-<script src="assets/site.js">
+<script src="<?=h(versioned_asset('assets/site.js', 'assets/site.js'))?>">
 </script>
 </body>
 </html>

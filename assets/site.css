@@ -2175,3 +2175,40 @@ body {
         min-height: 0;
     }
 }
+
+/* ==========================================================
+   Public estimate form spacing — no controls/buttons touching
+   ========================================================== */
+.estimate-form > .public-upload {
+    margin-top:2px;
+    margin-bottom:16px;
+}
+.estimate-form > .btn-full {
+    margin-top:0;
+    margin-bottom:10px;
+    min-height:52px;
+}
+.estimate-form > .whatsapp-btn {
+    margin-top:0;
+    margin-bottom:12px;
+    min-height:52px;
+}
+.estimate-form > .form-note {
+    margin:0;
+    padding-top:0;
+    line-height:1.5;
+}
+
+@media(max-width:760px) {
+    .estimate-form > .public-upload {
+        margin-bottom:16px;
+    }
+    .estimate-form > .btn-full {
+        margin-bottom:10px;
+        min-height:54px;
+    }
+    .estimate-form > .whatsapp-btn {
+        margin-bottom:12px;
+        min-height:54px;
+    }
+}

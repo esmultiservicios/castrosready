@@ -39,6 +39,44 @@ class EmailTemplates
 HTML;
     }
 
+
+    private static function estimateAttachments(array $request): string
+    {
+        $attachments = $request['attachments'] ?? [];
+        if (!is_array($attachments) || !$attachments) {
+            return '';
+        }
+
+        $items = '';
+        foreach (array_slice($attachments, 0, 8) as $attachment) {
+            if (!is_array($attachment)) {
+                continue;
+            }
+
+            $url = trim((string) ($attachment['url'] ?? ''));
+            if ($url === '' || !filter_var($url, FILTER_VALIDATE_URL)) {
+                continue;
+            }
+
+            $name = h((string) ($attachment['name'] ?? 'Project photo'));
+            $safeUrl = h($url);
+            $items .= '<a href="' . $safeUrl . '" style="display:inline-block;width:142px;vertical-align:top;margin:0 10px 12px 0;text-decoration:none;color:#20302f">'
+                . '<img src="' . $safeUrl . '" alt="' . $name . '" style="display:block;width:142px;height:104px;object-fit:cover;border:1px solid #dfe5e1;border-radius:12px;background:#f8faf9">'
+                . '<span style="display:block;margin-top:6px;font-size:12px;line-height:1.35;word-break:break-word">' . $name . '</span>'
+                . '</a>';
+        }
+
+        if ($items === '') {
+            return '';
+        }
+
+        return '<div style="margin-top:22px">'
+            . '<p style="margin:0 0 10px"><strong>Uploaded project photos</strong><br>'
+            . '<span style="font-size:13px;color:#667170">Open any preview below to view the uploaded image in full size. The email service also includes the files as attachments when the mail provider allows their size.</span></p>'
+            . '<div>' . $items . '</div>'
+            . '</div>';
+    }
+
     public static function estimateAdmin(array $request, array $settings): string
     {
         $rows = [
@@ -65,6 +103,7 @@ HTML;
         $html .= '<p><strong>Project details</strong><br>'
             . nl2br(h($request['message'] ?? ''))
             . '</p>';
+        $html .= self::estimateAttachments($request);
 
         return self::base('New estimate request', $html, $settings);
     }
@@ -74,7 +113,8 @@ HTML;
         $name = h($request['full_name'] ?? 'there');
         $content = '<p>Hello ' . $name . ',</p>'
             . '<p>Thank you for contacting Castro’s Ready. We successfully received your free estimate request and our team will review it as soon as possible.</p>'
-            . '<p>If you have additional information, you can reply through the contact methods shown on our website.</p>';
+            . '<p>If you have additional information, you can reply through the contact methods shown on our website.</p>'
+            . self::estimateAttachments($request);
 
         return self::base('We received your request', $content, $settings);
     }

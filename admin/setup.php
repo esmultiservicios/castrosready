@@ -38,9 +38,9 @@ if($_SERVER['REQUEST_METHOD']==='POST') {
 <link rel="icon" href="../<?=h($favicon)?>">
 <link rel="shortcut icon" href="../<?=h($favicon)?>">
 <title>Admin Setup</title>
-<link rel="stylesheet" href="../assets/vendor/sweetalert2/sweetalert2.min.css">
-<link rel="stylesheet" href="../assets/vendor/show-notify/showNotify.css">
-<link rel="stylesheet" href="admin.css">
+<link rel="stylesheet" href="<?=h(versioned_asset('../assets/vendor/sweetalert2/sweetalert2.min.css', 'assets/vendor/sweetalert2/sweetalert2.min.css'))?>">
+<link rel="stylesheet" href="<?=h(versioned_asset('../assets/vendor/show-notify/showNotify.css', 'assets/vendor/show-notify/showNotify.css'))?>">
+<link rel="stylesheet" href="<?=h(versioned_asset('admin.css', 'admin/admin.css'))?>">
 <style>
 .setup-wizard-status{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:0 0 22px}.setup-wizard-step{display:flex;align-items:center;gap:9px;min-width:0;padding:10px;border:1px solid #d9e4df;border-radius:13px;background:#f8fbfa}.setup-wizard-step.done,.setup-wizard-step.active{border-color:#9fd0c7;background:#edf8f5}.setup-wizard-num{width:30px;height:30px;flex:0 0 30px;display:grid;place-items:center;border-radius:50%;background:#e5ebe8;color:#667170;font-size:12px;font-weight:900}.setup-wizard-step.done .setup-wizard-num,.setup-wizard-step.active .setup-wizard-num{background:#0f7777;color:#fff}.setup-wizard-copy{min-width:0;display:grid;gap:1px}.setup-wizard-copy strong{font-size:12px;line-height:1.2}.setup-wizard-copy small{font-size:10px;color:#667170;line-height:1.25}.setup-step-count{display:inline-flex;margin:0 0 12px;padding:7px 10px;border-radius:999px;background:#eef8f5;border:1px solid #cfe1dc;color:#0b5f60;font-size:12px;font-weight:800}.auth-card button,.auth-card a{cursor:pointer}.setup-submit{display:flex!important;align-items:center!important;justify-content:center!important;gap:9px!important}.setup-submit .setup-arrow{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:50%;background:rgba(255,255,255,.16);font-size:17px}@media(max-width:620px){.setup-wizard-status{grid-template-columns:1fr}.setup-wizard-step{padding:9px 10px}}@media(prefers-reduced-motion:reduce){.auth-card button,.auth-card a{transition:none!important}}
 </style>
@@ -94,9 +94,9 @@ endif;
 </form>
 </div>
 </main>
-<script src="../assets/vendor/sweetalert2/sweetalert2.all.min.js">
+<script src="<?=h(versioned_asset('../assets/vendor/sweetalert2/sweetalert2.all.min.js', 'assets/vendor/sweetalert2/sweetalert2.all.min.js'))?>">
 </script>
-<script src="../assets/vendor/show-notify/showNotify.js">
+<script src="<?=h(versioned_asset('../assets/vendor/show-notify/showNotify.js', 'assets/vendor/show-notify/showNotify.js'))?>">
 </script>
 <script>document.querySelectorAll(".alert.success,.alert.error,.alert.info,.alert.warning").forEach(function(el){var t=el.classList.contains("error")?"error":el.classList.contains("warning")?"warning":el.classList.contains("success")?"success":"info";if(window.showNotify){showNotify(el.textContent.trim(),t);el.hidden=true;}});</script>
 </body>

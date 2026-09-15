@@ -2,97 +2,221 @@
 declare(strict_types=1);
 require_once __DIR__.'/../config/bootstrap.php';
 require_once __DIR__.'/emailTemplates.php';
+
 class EmailService {
+    private const GRAPH_ATTACHMENT_LIMIT = 2500000;
+    private const SMTP_ATTACHMENT_LIMIT = 18000000;
+
     public function configByType(int $type):?array {
         $st=db()->prepare('SELECT * FROM correo WHERE correo_tipo_id=? AND estado=1 ORDER BY correo_id DESC LIMIT 1');
         $st->execute([$type]);
         return $st->fetch()?:null;
     }
+
     public function configById(int $id):?array {
         $st=db()->prepare('SELECT * FROM correo WHERE correo_id=? LIMIT 1');
         $st->execute([$id]);
         return $st->fetch()?:null;
     }
-    public function sendByType(int $type,string $to,string $subject,string $html,string $replyTo=''):array {
+
+    public function sendByType(
+        int $type,
+        string $to,
+        string $subject,
+        string $html,
+        string $replyTo='',
+        array $bcc=[],
+        array $attachments=[]
+    ):array {
         $cfg=$this->configByType($type);
-        if(!$cfg)return ['success'=>false,
-        'message'=>'No active email configuration for this type.'];
-        return $this->send($cfg,$to,$subject,$html,$replyTo);
+        if(!$cfg)return ['success'=>false,'message'=>'No active email configuration for this type.'];
+        return $this->send($cfg,$to,$subject,$html,$replyTo,$bcc,$attachments);
     }
-    public function sendWithFallback(array $types,string $to,string $subject,string $html,string $replyTo=''):array {
+
+    public function sendWithFallback(
+        array $types,
+        string $to,
+        string $subject,
+        string $html,
+        string $replyTo='',
+        array $bcc=[],
+        array $attachments=[]
+    ):array {
         foreach($types as $type) {
             $cfg=$this->configByType((int)$type);
             if($cfg) {
-                $result=$this->send($cfg,$to,$subject,$html,$replyTo);
+                $result=$this->send($cfg,$to,$subject,$html,$replyTo,$bcc,$attachments);
                 if($result['success'])return $result;
                 $last=$result;
             }
         }
-        return $last??['success'=>false,
-        'message'=>'No active email configuration is available.'];
+        return $last??['success'=>false,'message'=>'No active email configuration is available.'];
     }
+
     public function test(int $id,string $to=''):array {
         $cfg=$this->configById($id);
-        if(!$cfg)return ['success'=>false,
-        'message'=>'Email configuration not found.'];
+        if(!$cfg)return ['success'=>false,'message'=>'Email configuration not found.'];
         $dest=$to!==''?$to:$cfg['correo'];
         return $this->send($cfg,$dest,'Castro\'s Ready email test',EmailTemplates::test($cfg['metodo_envio'],settings()));
     }
-    public function send(array $cfg,string $to,string $subject,string $html,string $replyTo=''):array {
-        if(!filter_var($to,FILTER_VALIDATE_EMAIL))return ['success'=>false,
-        'message'=>'Invalid destination email.'];
+
+    public function send(
+        array $cfg,
+        string $to,
+        string $subject,
+        string $html,
+        string $replyTo='',
+        array $bcc=[],
+        array $attachments=[]
+    ):array {
+        $to=strtolower(trim($to));
+        if(!filter_var($to,FILTER_VALIDATE_EMAIL))return ['success'=>false,'message'=>'Invalid destination email.'];
         $replyTo=filter_var($replyTo,FILTER_VALIDATE_EMAIL)?strtolower(trim($replyTo)):'';
+        $bcc=$this->normalizeEmails($bcc,$to);
+
         return strtoupper((string)$cfg['metodo_envio'])==='GRAPH'
-            ?$this->graph($cfg,$to,$subject,$html,$replyTo)
-            :$this->smtp($cfg,$to,$subject,$html,$replyTo);
+            ?$this->graph($cfg,$to,$subject,$html,$replyTo,$bcc,$attachments)
+            :$this->smtp($cfg,$to,$subject,$html,$replyTo,$bcc,$attachments);
     }
-    private function graph(array $c,string $to,string $subject,string $html,string $replyTo=''):array {
-        if(!function_exists('curl_init'))return ['success'=>false,
-        'message'=>'cURL is not enabled on this server.'];
+
+    private function normalizeEmails(array $emails,string $primary=''):array {
+        $normalized=[];
+        foreach($emails as $email) {
+            $email=strtolower(trim((string)$email));
+            if($email===''||!filter_var($email,FILTER_VALIDATE_EMAIL))continue;
+            if($primary!==''&&strcasecmp($email,$primary)===0)continue;
+            $normalized[$email]=$email;
+        }
+        return array_values($normalized);
+    }
+
+    private function normalizeAttachments(array $attachments,int $maxTotalBytes):array {
+        $safe=[];
+        $total=0;
+        $uploadRoot=realpath(UPLOAD_DIR);
+        if($uploadRoot===false)return [];
+
+        foreach(array_slice($attachments,0,8) as $attachment) {
+            if(!is_array($attachment))continue;
+            $path=(string)($attachment['path']??'');
+            if($path==='')continue;
+            $real=realpath($path);
+            if($real===false||!is_file($real)||!str_starts_with($real,$uploadRoot.DIRECTORY_SEPARATOR))continue;
+            $size=(int)filesize($real);
+            if($size<1||($total+$size)>$maxTotalBytes)continue;
+
+            $name=basename(trim((string)($attachment['name']??basename($real))));
+            if($name==='')$name=basename($real);
+            $name=preg_replace('/[\r\n\x00-\x1F\x7F]+/u',' ',$name)?:'attachment';
+            $mime=trim((string)($attachment['mime']??''));
+            if(!preg_match('~^[a-z0-9.+-]+/[a-z0-9.+-]+$~i',$mime))$mime='application/octet-stream';
+
+            $safe[]=['path'=>$real,'name'=>$name,'mime'=>$mime,'size'=>$size];
+            $total+=$size;
+        }
+        return $safe;
+    }
+
+    private function graph(
+        array $c,
+        string $to,
+        string $subject,
+        string $html,
+        string $replyTo='',
+        array $bcc=[],
+        array $attachments=[]
+    ):array {
+        if(!function_exists('curl_init'))return ['success'=>false,'message'=>'cURL is not enabled on this server.'];
         $tenant=trim((string)$c['tenant_id']);
         $client=trim((string)$c['client_id']);
         $secret=secret_decrypt($c['client_secret']??'');
         $from=trim((string)($c['graph_user']?:$c['correo']));
-        if(!$tenant||!$client||!$secret||!filter_var($from,FILTER_VALIDATE_EMAIL))return ['success'=>false,
-        'message'=>'Graph credentials are incomplete.'];
+        if(!$tenant||!$client||!$secret||!filter_var($from,FILTER_VALIDATE_EMAIL))return ['success'=>false,'message'=>'Graph credentials are incomplete.'];
+
         $ch=curl_init('https://login.microsoftonline.com/'.rawurlencode($tenant).'/oauth2/v2.0/token');
-        curl_setopt_array($ch,[CURLOPT_POST=>true,CURLOPT_RETURNTRANSFER=>true,CURLOPT_TIMEOUT=>30,CURLOPT_POSTFIELDS=>http_build_query(['client_id'=>$client,'scope'=>'https://graph.microsoft.com/.default','client_secret'=>$secret,'grant_type'=>'client_credentials']),CURLOPT_HTTPHEADER=>['Content-Type: application/x-www-form-urlencoded']]);
+        curl_setopt_array($ch,[
+            CURLOPT_POST=>true,
+            CURLOPT_RETURNTRANSFER=>true,
+            CURLOPT_TIMEOUT=>30,
+            CURLOPT_POSTFIELDS=>http_build_query([
+                'client_id'=>$client,
+                'scope'=>'https://graph.microsoft.com/.default',
+                'client_secret'=>$secret,
+                'grant_type'=>'client_credentials'
+            ]),
+            CURLOPT_HTTPHEADER=>['Content-Type: application/x-www-form-urlencoded']
+        ]);
         $raw=curl_exec($ch);
         $code=(int)curl_getinfo($ch,CURLINFO_HTTP_CODE);
         $err=curl_error($ch);
         curl_close($ch);
         $json=json_decode((string)$raw,true);
-        if($code<200||$code>=300||empty($json['access_token']))return ['success'=>false,
-        'message'=>'Graph token error: '.($err?:('HTTP '.$code))];
-        $message=['subject'=>$subject,
-        'body'=>['contentType'=>'HTML','content'=>$html],
-        'toRecipients'=>[['emailAddress'=>['address'=>$to]]]];
+        if($code<200||$code>=300||empty($json['access_token']))return ['success'=>false,'message'=>'Graph token error: '.($err?:('HTTP '.$code))];
+
+        $message=[
+            'subject'=>$subject,
+            'body'=>['contentType'=>'HTML','content'=>$html],
+            'toRecipients'=>[['emailAddress'=>['address'=>$to]]]
+        ];
         if($replyTo!=='')$message['replyTo']=[['emailAddress'=>['address'=>$replyTo]]];
-        $payload=['message'=>$message,
-        'saveToSentItems'=>(int)($c['save_to_sent_items']??1)===1];
+        if($bcc)$message['bccRecipients']=array_map(static fn(string $email)=>['emailAddress'=>['address'=>$email]],$bcc);
+
+        $safeAttachments=$this->normalizeAttachments($attachments,self::GRAPH_ATTACHMENT_LIMIT);
+        if($safeAttachments) {
+            $message['attachments']=[];
+            foreach($safeAttachments as $attachment) {
+                $content=@file_get_contents($attachment['path']);
+                if($content===false)continue;
+                $message['attachments'][]=[
+                    '@odata.type'=>'#microsoft.graph.fileAttachment',
+                    'name'=>$attachment['name'],
+                    'contentType'=>$attachment['mime'],
+                    'contentBytes'=>base64_encode($content)
+                ];
+            }
+            if(!$message['attachments'])unset($message['attachments']);
+        }
+
+        $payload=['message'=>$message,'saveToSentItems'=>(int)($c['save_to_sent_items']??1)===1];
         $ch=curl_init('https://graph.microsoft.com/v1.0/users/'.rawurlencode($from).'/sendMail');
-        curl_setopt_array($ch,[CURLOPT_POST=>true,CURLOPT_RETURNTRANSFER=>true,CURLOPT_TIMEOUT=>45,CURLOPT_POSTFIELDS=>json_encode($payload,JSON_UNESCAPED_UNICODE),CURLOPT_HTTPHEADER=>['Authorization: Bearer '.$json['access_token'],'Content-Type: application/json']]);
+        curl_setopt_array($ch,[
+            CURLOPT_POST=>true,
+            CURLOPT_RETURNTRANSFER=>true,
+            CURLOPT_TIMEOUT=>45,
+            CURLOPT_POSTFIELDS=>json_encode($payload,JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES),
+            CURLOPT_HTTPHEADER=>['Authorization: Bearer '.$json['access_token'],'Content-Type: application/json']
+        ]);
         $resp=curl_exec($ch);
         $code=(int)curl_getinfo($ch,CURLINFO_HTTP_CODE);
         $err=curl_error($ch);
         curl_close($ch);
-        return $code===202?['success'=>true,
-        'message'=>'Email sent with Microsoft Graph.']:['success'=>false,
-        'message'=>'Graph send error: '.($err?:('HTTP '.$code.' '.$resp))];
+
+        return $code===202
+            ?['success'=>true,'message'=>'Email sent with Microsoft Graph.']
+            :['success'=>false,'message'=>'Graph send error: '.($err?:('HTTP '.$code.' '.$resp))];
     }
-    private function smtp(array $c,string $to,string $subject,string $html,string $replyTo=''):array {
+
+    private function smtp(
+        array $c,
+        string $to,
+        string $subject,
+        string $html,
+        string $replyTo='',
+        array $bcc=[],
+        array $attachments=[]
+    ):array {
         $host=trim((string)$c['server']);
         $port=(int)($c['port']?:587);
         $secure=strtolower(trim((string)$c['smtp_secure']));
         $user=trim((string)$c['correo']);
         $pass=secret_decrypt($c['password']??'');
-        if(!$host||!filter_var($user,FILTER_VALIDATE_EMAIL)||$pass==='')return ['success'=>false,
-        'message'=>'SMTP configuration is incomplete.'];
+        if(!$host||!filter_var($user,FILTER_VALIDATE_EMAIL)||$pass==='')return ['success'=>false,'message'=>'SMTP configuration is incomplete.'];
+
         $target=($secure==='ssl'?'ssl://':'tcp://').$host.':'.$port;
         $fp=@stream_socket_client($target,$errno,$errstr,15,STREAM_CLIENT_CONNECT);
-        if(!$fp)return ['success'=>false,
-        'message'=>'SMTP connection failed: '.$errstr];
+        if(!$fp)return ['success'=>false,'message'=>'SMTP connection failed: '.$errstr];
         stream_set_timeout($fp,20);
+
         try {
             $this->expect($fp,[220]);
             $ehloHost=preg_replace('/[^a-z0-9.-]/i','',(string)($_SERVER['HTTP_HOST']??'localhost'))?:'localhost';
@@ -107,33 +231,57 @@ class EmailService {
             $this->cmd($fp,base64_encode($pass),[235]);
             $this->cmd($fp,'MAIL FROM:<'.$user.'>',[250]);
             $this->cmd($fp,'RCPT TO:<'.$to.'>',[250,251]);
+            foreach($bcc as $bccEmail)$this->cmd($fp,'RCPT TO:<'.$bccEmail.'>',[250,251]);
             $this->cmd($fp,'DATA',[354]);
-            $boundary='b'.bin2hex(random_bytes(8));
-            $headers=['From: Castro\'s Ready <'.$user.'>',
-            'To: <'.$to.'>',
-            'Subject: =?UTF-8?B?'.base64_encode($subject).'?=',
-            'MIME-Version: 1.0',
-            'Content-Type: text/html; charset=UTF-8',
-            'Content-Transfer-Encoding: base64'];
+
+            $boundary='cr_'.bin2hex(random_bytes(12));
+            $headers=[
+                'From: Castro\'s Ready <'.$user.'>',
+                'To: <'.$to.'>',
+                'Subject: =?UTF-8?B?'.base64_encode($subject).'?=',
+                'MIME-Version: 1.0',
+                'Content-Type: multipart/mixed; boundary="'.$boundary.'"'
+            ];
             if($replyTo!=='')$headers[]='Reply-To: <'.$replyTo.'>';
-            $body=implode("\r\n",$headers)."\r\n\r\n".chunk_split(base64_encode($html))."\r\n.";
+
+            $parts=[];
+            $parts[]='--'.$boundary."\r\n"
+                .'Content-Type: text/html; charset=UTF-8'."\r\n"
+                .'Content-Transfer-Encoding: base64'."\r\n\r\n"
+                .chunk_split(base64_encode($html));
+
+            foreach($this->normalizeAttachments($attachments,self::SMTP_ATTACHMENT_LIMIT) as $attachment) {
+                $content=@file_get_contents($attachment['path']);
+                if($content===false)continue;
+                $asciiName=function_exists('iconv')?(iconv('UTF-8','ASCII//TRANSLIT//IGNORE',$attachment['name'])?:$attachment['name']):$attachment['name'];
+                $safeAscii=preg_replace('/[^A-Za-z0-9._ -]+/','_',$asciiName);
+                $safeAscii=trim((string)$safeAscii)?:'attachment';
+                $parts[]='--'.$boundary."\r\n"
+                    .'Content-Type: '.$attachment['mime'].'; name="'.addcslashes($safeAscii,'"\\').'"'."\r\n"
+                    .'Content-Transfer-Encoding: base64'."\r\n"
+                    .'Content-Disposition: attachment; filename="'.addcslashes($safeAscii,'"\\').'"; filename*=UTF-8\'\''.rawurlencode($attachment['name'])."\r\n\r\n"
+                    .chunk_split(base64_encode($content));
+            }
+            $parts[]='--'.$boundary.'--'."\r\n";
+
+            $body=implode("\r\n",$headers)."\r\n\r\n".implode("\r\n",$parts)."\r\n.";
             fwrite($fp,$body."\r\n");
             $this->expect($fp,[250]);
             $this->cmd($fp,'QUIT',[221]);
             fclose($fp);
-            return ['success'=>true,
-            'message'=>'Email sent with SMTP.'];
+            return ['success'=>true,'message'=>'Email sent with SMTP.'];
         } catch(Throwable $e) {
             @fwrite($fp,"QUIT\r\n");
             @fclose($fp);
-            return ['success'=>false,
-            'message'=>$e->getMessage()];
+            return ['success'=>false,'message'=>$e->getMessage()];
         }
     }
+
     private function cmd($fp,string $cmd,array $codes):void {
         fwrite($fp,$cmd."\r\n");
         $this->expect($fp,$codes);
     }
+
     private function expect($fp,array $codes):void {
         $resp='';
         while(($line=fgets($fp,515))!==false) {

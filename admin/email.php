@@ -162,7 +162,7 @@ endif;
 </div>
 <div>
 <h2>Estimate notification recipients</h2>
-<p>The first address receives every website request. The optional copy is useful for supervision and can be changed at any time.</p>
+<p>The first address receives every website request. The optional copy is sent as BCC, so it stays hidden from the customer and other recipients.</p>
 </div>
 </div>
 <form method="post">
@@ -172,8 +172,8 @@ endif;
 <label>Send new requests to<input type="email" name="estimate_notification_email" required value="<?=h($set['estimate_notification_email']??($set['email']??'castrosreadycompany@gmail.com'))?>" placeholder="castrosreadycompany@gmail.com">
 <small>This is the internal Castro's Ready inbox that receives the complete request.</small>
 </label>
-<label>Optional copy to<input type="email" name="estimate_copy_email" value="<?=h($set['estimate_copy_email']??'')?>" placeholder="Optional supervision email">
-<small>Leave blank when no additional copy is needed.</small>
+<label>Optional copy to (BCC)<input type="email" name="estimate_copy_email" value="<?=h($set['estimate_copy_email']??'')?>" placeholder="Optional supervision email">
+<small>This address is hidden from the customer and from the primary recipient. Leave blank when no additional copy is needed.</small>
 </label>
 </div>
 <div class="form-actions"><button>Save notification recipients</button></div>

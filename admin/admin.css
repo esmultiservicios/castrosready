@@ -7327,3 +7327,201 @@ body.admin-find-open {
         padding: 15px 16px 18px;
     }
 }
+
+/* ==========================================================
+   UI alignment fixes — login, selects and 2FA setup
+   ========================================================== */
+.remember-check.cr-check {
+    display:inline-flex;
+    align-items:center;
+    gap:10px!important;
+    min-height:36px;
+    position:relative;
+}
+.remember-check.cr-check input[type=checkbox] {
+    position:absolute!important;
+    width:1px!important;
+    height:1px!important;
+    min-height:1px!important;
+    margin:0!important;
+    padding:0!important;
+    opacity:0!important;
+    pointer-events:none;
+}
+.remember-check.cr-check .cr-check-box {
+    width:28px;
+    height:28px;
+    flex:0 0 28px;
+    border:1px solid #aebfba;
+    border-radius:9px;
+    background:#fff;
+    display:grid;
+    place-items:center;
+    box-shadow:0 2px 7px rgba(16,60,57,.05);
+    transition:.18s border-color,.18s background,.18s box-shadow;
+}
+.remember-check.cr-check input[type=checkbox]:checked + .cr-check-box {
+    background:var(--teal);
+    border-color:var(--teal);
+    box-shadow:0 0 0 4px rgba(15,119,119,.09);
+}
+.remember-check.cr-check input[type=checkbox]:checked + .cr-check-box::after {
+    content:"";
+    width:100%;
+    height:100%;
+    background-repeat:no-repeat;
+    background-position:center;
+    background-size:15px 15px;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='m6.5 12.5 3.5 3.5 7.5-8' fill='none' stroke='%23fff' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+.remember-check.cr-check input[type=checkbox]:focus-visible + .cr-check-box {
+    outline:3px solid rgba(15,119,119,.2);
+    outline-offset:2px;
+}
+.remember-check.cr-check .cr-check-text {
+    line-height:1.25;
+}
+
+/* Selects stay neutral until interaction. */
+.cr-select-button {
+    border:1px solid var(--line2);
+    background:#fff;
+    color:var(--ink);
+    box-shadow:none;
+}
+.cr-select-button::after {
+    content:"";
+    right:13px;
+    top:50%;
+    transform:translateY(-50%);
+    width:26px;
+    height:26px;
+    border-radius:8px;
+    background-color:var(--teal);
+    background-repeat:no-repeat;
+    background-position:center;
+    background-size:15px 15px;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='m7 9.5 5 5 5-5' fill='none' stroke='%23fff' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+.cr-select.open .cr-select-button,
+.cr-select-button:focus-visible {
+    border-color:var(--teal);
+    background:#fff;
+    box-shadow:0 0 0 4px rgba(15,119,119,.1);
+}
+.cr-select-option {
+    background:#fff;
+    color:var(--ink);
+}
+.cr-select-option:hover,
+.cr-select-option:focus-visible {
+    background:var(--teal)!important;
+    color:#fff!important;
+}
+.cr-select-option[aria-selected="true"] {
+    background:#fff!important;
+    color:var(--ink)!important;
+    font-weight:850;
+}
+.cr-select-option[aria-selected="true"]::after {
+    color:var(--teal);
+}
+.cr-select-option[aria-selected="true"]:hover::after,
+.cr-select-option[aria-selected="true"]:focus-visible::after {
+    color:#fff;
+}
+
+/* Keep form controls and their actions visually separated. */
+.panel > form,
+.content-grid .panel > form {
+    row-gap:20px;
+}
+.form-actions {
+    margin-top:6px;
+    padding-top:2px;
+}
+.form-helper {
+    margin:0;
+    line-height:1.55;
+}
+.secure-setup-note {
+    padding:12px 14px;
+    border:1px solid #d8e7e1;
+    border-radius:12px;
+    background:#f8fbfa;
+}
+
+.totp-setup-grid {
+    display:grid;
+    grid-template-columns:minmax(220px,300px) minmax(0,1fr);
+    gap:20px;
+    align-items:stretch;
+    margin:12px 0 20px;
+}
+.totp-qr-card,
+.totp-setup {
+    margin:0;
+    padding:18px;
+    border:1px solid #b9d9cf;
+    background:#f7fbfa;
+    border-radius:16px;
+}
+.totp-qr-card {
+    display:grid;
+    gap:12px;
+    align-content:start;
+}
+.totp-qr-card small,
+.totp-setup small {
+    font-weight:900;
+    letter-spacing:.1em;
+    color:var(--teal);
+}
+.totp-qr-card p,
+.totp-setup p {
+    margin:0;
+    color:#5f6e6a;
+}
+.totp-qr {
+    width:min(100%,230px);
+    aspect-ratio:1;
+    margin:0 auto;
+    padding:10px;
+    border:1px solid #d7e4df;
+    border-radius:14px;
+    background:#fff;
+    display:grid;
+    place-items:center;
+}
+.totp-qr svg {
+    display:block;
+    width:100%;
+    height:100%;
+}
+.totp-setup > div {
+    height:100%;
+    display:grid;
+    gap:12px;
+    align-content:start;
+}
+.totp-setup .button {
+    justify-self:start;
+}
+
+@media(max-width:760px) {
+    .totp-setup-grid {
+        grid-template-columns:1fr;
+        gap:14px;
+    }
+    .totp-qr {
+        width:min(100%,250px);
+    }
+    .totp-setup .button {
+        width:100%;
+    }
+}
+.cr-select-option[aria-selected="true"]:hover,
+.cr-select-option[aria-selected="true"]:focus-visible {
+    background:var(--teal)!important;
+    color:#fff!important;
+}
