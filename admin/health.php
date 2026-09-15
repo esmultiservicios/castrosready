@@ -3,6 +3,7 @@ require __DIR__.'/bootstrap.php';
 require_permission('health.view');
 $pdo=db();
 $s=settings();
+$runtimeRequirements=server_runtime_requirements();
 $checks=[];
 $checks[]=['Logo configured',
 !empty($s['admin_logo_path']),
@@ -45,8 +46,11 @@ $checks[]=['HTTPS detected',
 $https,
 'Production should run over HTTPS.',
 '#'];
-$passed=count(array_filter($checks,fn($c)=>$c[1]));
-$score=(int)round($passed/count($checks)*100);
+$runtimePassed=count(array_filter($runtimeRequirements,static fn($requirement)=>!empty($requirement['available'])));
+$websitePassed=count(array_filter($checks,static fn($check)=>!empty($check[1])));
+$passed=$runtimePassed+$websitePassed;
+$checkCount=count($runtimeRequirements)+count($checks);
+$score=(int)round($passed/$checkCount*100);
 $pageTitle='Website Health';
 $active='health';
 require __DIR__.'/_header.php';
@@ -63,13 +67,45 @@ require __DIR__.'/_header.php';
 <strong><?=$score?>
 %</strong>
 <span><?=$passed?>
- of <?=count($checks)?>
+ of <?=$checkCount?>
  checks passed</span>
 </div>
 <div class="health-meter">
 <i style="width:<?=$score?>
 %">
 </i>
+</div>
+</div>
+
+<section class="panel" id="server-requirements">
+<div class="panel-heading">
+<div class="panel-icon"><?=icon('gear')?>
+</div>
+<div>
+<h2>PHP & server requirements</h2>
+<p>These checks are read directly from the active PHP environment every time this page loads. Install an extension, reload this page and its status will update automatically.</p>
+</div>
+</div>
+<div class="health-grid"><?php
+foreach($runtimeRequirements as $requirement):
+?>
+<article class="health-card <?=$requirement['available']?'ok':'warn'?>">
+<span><?=$requirement['available']?'✓':'!'?></span>
+<div>
+<strong><?=h($requirement['name'])?> · <?=$requirement['available']?'Available':'Missing'?></strong>
+<p><?=h($requirement['purpose'])?></p>
+<small><?=h($requirement['available']?'Detected in PHP '.PHP_VERSION.'.':$requirement['install'])?></small>
+</div>
+</article><?php
+endforeach;
+?>
+</div>
+</section>
+
+<div class="page-heading health-section-heading">
+<div>
+<p class="eyebrow">WEBSITE CONTENT</p>
+<h2>Configuration checks</h2>
 </div>
 </div>
 <div class="health-grid"><?php

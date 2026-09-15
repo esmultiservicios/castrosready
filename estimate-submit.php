@@ -26,7 +26,7 @@ try {
         $path=upload_image($f,'estimates','estimate-'.$id,8);
         if($first===null)$first=$path;
         $ins=$pdo->prepare('INSERT INTO estimate_attachments(estimate_id,file_path,original_name,mime_type,file_size) VALUES(?,?,?,?,?)');
-        $ins->execute([$id,$path,$f['name']??'',mime_content_type(ROOT_DIR.'/'.$path)?:'',(int)($f['size']??0)]);
+        $ins->execute([$id,$path,$f['name']??'',detect_file_mime_type(ROOT_DIR.'/'.$path),(int)($f['size']??0)]);
     }
     if($first)$pdo->prepare('UPDATE estimate_requests SET photo_path=? WHERE id=?')->execute([$first,$id]);
     $pdo->commit();

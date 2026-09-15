@@ -40,11 +40,115 @@ function save_setting(string $key, string $value): void {
     $st=db()->prepare('INSERT INTO settings(setting_key,setting_value) VALUES(?,?) ON DUPLICATE KEY UPDATE setting_value=VALUES(setting_value)');
     $st->execute([$key,$value]);
 }
+function server_runtime_requirements(): array {
+    return [
+        [
+            'key'=>'php_version',
+            'name'=>'PHP 8.0 or newer',
+            'available'=>version_compare(PHP_VERSION,'8.0.0','>='),
+            'purpose'=>'Required by the CMS language features.',
+            'install'=>'Select PHP 8.2 or PHP 8.3 in MultiPHP Manager.',
+            'required'=>true,
+        ],
+        [
+            'key'=>'pdo',
+            'name'=>'PDO',
+            'available'=>extension_loaded('pdo')&&class_exists('PDO'),
+            'purpose'=>'Provides secure database connections.',
+            'install'=>'Search for pdo in WHM → EasyApache 4 → PHP Extensions.',
+            'required'=>true,
+        ],
+        [
+            'key'=>'pdo_mysql',
+            'name'=>'PDO MySQL',
+            'available'=>extension_loaded('pdo_mysql'),
+            'purpose'=>'Connects the CMS to its MySQL or MariaDB database.',
+            'install'=>'Search for pdo_mysql in WHM → EasyApache 4 → PHP Extensions.',
+            'required'=>true,
+        ],
+        [
+            'key'=>'openssl',
+            'name'=>'OpenSSL',
+            'available'=>extension_loaded('openssl')&&function_exists('openssl_encrypt'),
+            'purpose'=>'Encrypts stored email credentials and enables secure SMTP connections.',
+            'install'=>'Search for openssl in WHM → EasyApache 4 → PHP Extensions.',
+            'required'=>true,
+        ],
+        [
+            'key'=>'curl',
+            'name'=>'cURL',
+            'available'=>extension_loaded('curl')&&function_exists('curl_init'),
+            'purpose'=>'Required to send email through Microsoft Graph.',
+            'install'=>'Search for curl in WHM → EasyApache 4 → PHP Extensions.',
+            'required'=>true,
+        ],
+        [
+            'key'=>'fileinfo',
+            'name'=>'Fileinfo',
+            'available'=>extension_loaded('fileinfo')&&class_exists('finfo')&&defined('FILEINFO_MIME_TYPE'),
+            'purpose'=>'Validates the real type of uploaded images, videos and documents.',
+            'install'=>'Search for fileinfo in WHM → EasyApache 4 → PHP Extensions.',
+            'required'=>true,
+        ],
+        [
+            'key'=>'zip',
+            'name'=>'ZIP / ZipArchive',
+            'available'=>extension_loaded('zip')&&class_exists('ZipArchive'),
+            'purpose'=>'Creates and restores complete CMS backups.',
+            'install'=>'Search for zip in WHM → EasyApache 4 → PHP Extensions.',
+            'required'=>true,
+        ],
+        [
+            'key'=>'json',
+            'name'=>'JSON',
+            'available'=>extension_loaded('json')&&function_exists('json_encode')&&function_exists('json_decode'),
+            'purpose'=>'Processes form responses, backups and CMS metadata.',
+            'install'=>'Search for json in WHM → EasyApache 4 → PHP Extensions.',
+            'required'=>true,
+        ],
+        [
+            'key'=>'session',
+            'name'=>'Session',
+            'available'=>extension_loaded('session')&&function_exists('session_start'),
+            'purpose'=>'Maintains secure administrator sessions.',
+            'install'=>'Search for session in WHM → EasyApache 4 → PHP Extensions.',
+            'required'=>true,
+        ],
+        [
+            'key'=>'filter',
+            'name'=>'Filter',
+            'available'=>extension_loaded('filter')&&function_exists('filter_var'),
+            'purpose'=>'Validates email addresses and submitted information.',
+            'install'=>'Search for filter in WHM → EasyApache 4 → PHP Extensions.',
+            'required'=>true,
+        ],
+        [
+            'key'=>'hash',
+            'name'=>'Hash',
+            'available'=>extension_loaded('hash')&&function_exists('hash_hmac'),
+            'purpose'=>'Protects sessions, recovery tokens and two-factor authentication.',
+            'install'=>'Search for hash in WHM → EasyApache 4 → PHP Extensions.',
+            'required'=>true,
+        ],
+    ];
+}
+function fileinfo_available(): bool {
+    foreach(server_runtime_requirements() as $requirement) {
+        if($requirement['key']==='fileinfo')return (bool)$requirement['available'];
+    }
+    return false;
+}
+function detect_file_mime_type(string $path): string {
+    if(!fileinfo_available()) {
+        throw new RuntimeException('Image uploads are temporarily unavailable because the PHP Fileinfo extension is not enabled. Please contact the website administrator.');
+    }
+    $finfo=new finfo(FILEINFO_MIME_TYPE);
+    return (string)($finfo->file($path)?:'');
+}
 function upload_image(array $file, string $subdir, string $prefix, int $maxMb = 8): string {
     if (($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) throw new RuntimeException('Image upload failed.');
     if (($file['size'] ?? 0) > $maxMb * 1024 * 1024) throw new RuntimeException("Image exceeds {$maxMb} MB.");
-    $finfo = new finfo(FILEINFO_MIME_TYPE);
-    $mime=$finfo->file($file['tmp_name']);
+    $mime=detect_file_mime_type((string)$file['tmp_name']);
     $allowed=['image/jpeg'=>'jpg',
     'image/png'=>'png',
     'image/webp'=>'webp'];
@@ -59,8 +163,7 @@ function upload_image(array $file, string $subdir, string $prefix, int $maxMb = 
 function upload_media_file(array $file, string $subdir='media', string $prefix='media', int $maxMb = 60): string {
     if (($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) throw new RuntimeException('Media upload failed.');
     if (($file['size'] ?? 0) > $maxMb * 1024 * 1024) throw new RuntimeException("Media file exceeds {$maxMb} MB.");
-    $finfo=new finfo(FILEINFO_MIME_TYPE);
-    $mime=$finfo->file($file['tmp_name']);
+    $mime=detect_file_mime_type((string)$file['tmp_name']);
     $allowed=[ 'image/jpeg'=>'jpg',
     'image/png'=>'png',
     'image/webp'=>'webp',
@@ -188,7 +291,7 @@ function admin_notify(string $type,string $title,string $message,string $url='')
 function media_add(string $path,string $title=''): void {
     try {
         $full=ROOT_DIR.'/'.$path;
-        $mime=is_file($full)?(mime_content_type($full)?:''):'';
+        $mime=is_file($full)?detect_file_mime_type($full):'';
         $size=is_file($full)?filesize($full):0;
         $adminId=!empty($_SESSION['cr_admin_id'])?(int)$_SESSION['cr_admin_id']:null;
         $st=db()->prepare('INSERT INTO media_library(title,file_path,mime_type,file_size,uploaded_by) VALUES(?,?,?,?,?)');

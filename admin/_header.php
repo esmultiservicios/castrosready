@@ -12,6 +12,11 @@ $bellNotes = recent_notifications(6);
 $maintenance = ($set['maintenance_mode'] ?? '0') === '1';
 $avatar = $admin['avatar_path'] ?? '';
 $favicon = $set['favicon_path'] ?? ($set['admin_logo_path'] ?? 'assets/logo.jpg');
+$runtimeRequirements = server_runtime_requirements();
+$missingRuntimeRequirements = array_values(array_filter(
+    $runtimeRequirements,
+    static fn($requirement) => !empty($requirement['required']) && empty($requirement['available'])
+));
 ?>
 <!doctype html>
 <html lang="en">
@@ -361,6 +366,18 @@ $favicon = $set['favicon_path'] ?? ($set['admin_logo_path'] ?? 'assets/logo.jpg'
     <div class="sidebar-backdrop" data-sidebar-backdrop></div>
 
     <main class="admin-main admin-content">
+        <?php if ($missingRuntimeRequirements): ?>
+            <div class="alert error" role="alert">
+                <strong>Server action required:</strong>
+                Missing PHP requirement<?= count($missingRuntimeRequirements)===1?'':'s' ?>:
+                <strong><?= h(implode(', ',array_column($missingRuntimeRequirements,'name'))) ?></strong>.
+                Some CMS functions will remain unavailable until <?= count($missingRuntimeRequirements)===1?'it is':'they are' ?> enabled.
+                <?php if (user_can('health.view')): ?>
+                    <a href="health.php#server-requirements">View details</a>
+                <?php endif; ?>
+            </div>
+        <?php endif; ?>
+
         <?php if ($flash): ?>
             <div
                 hidden
