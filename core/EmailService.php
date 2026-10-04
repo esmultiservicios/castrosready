@@ -2,6 +2,7 @@
 declare(strict_types=1);
 require_once __DIR__.'/../config/bootstrap.php';
 require_once __DIR__.'/emailTemplates.php';
+require_once __DIR__.'/EmailValidator.php';
 
 class EmailService {
     private const GRAPH_ATTACHMENT_LIMIT = 2500000;
@@ -47,6 +48,7 @@ class EmailService {
             if($cfg) {
                 $result=$this->send($cfg,$to,$subject,$html,$replyTo,$bcc,$attachments);
                 if($result['success'])return $result;
+                if(($result['error_code']??'')==='invalid_recipients')return $result;
                 $last=$result;
             }
         }
@@ -69,25 +71,93 @@ class EmailService {
         array $bcc=[],
         array $attachments=[]
     ):array {
-        $to=strtolower(trim($to));
-        if(!filter_var($to,FILTER_VALIDATE_EMAIL))return ['success'=>false,'message'=>'Invalid destination email.'];
-        $replyTo=filter_var($replyTo,FILTER_VALIDATE_EMAIL)?strtolower(trim($replyTo)):'';
-        $bcc=$this->normalizeEmails($bcc,$to);
+        $rejected=[];
+        $primaryValidation=EmailValidator::validate($to);
+        $to=$primaryValidation['valid']?(string)$primaryValidation['email']:'';
+        if(!$primaryValidation['valid']) {
+            $rejected[]=$this->rejectedRecipient($primaryValidation,'to');
+        }
 
-        return strtoupper((string)$cfg['metodo_envio'])==='GRAPH'
+        $bcc=$this->normalizeEmails($bcc,$to,$rejected);
+
+        if($to===''&&$bcc===[]) {
+            return [
+                'success'=>false,
+                'message'=>'No valid email recipients are available. The message was not sent.',
+                'error_code'=>'invalid_recipients',
+                'rejected_recipients'=>$rejected,
+                'valid_recipient_count'=>0,
+            ];
+        }
+
+        $replyTo=trim($replyTo);
+        if($replyTo!=='') {
+            $replyValidation=EmailValidator::validate($replyTo);
+            if($replyValidation['valid']) {
+                $replyTo=(string)$replyValidation['email'];
+            } else {
+                $rejected[]=$this->rejectedRecipient($replyValidation,'reply_to');
+                $replyTo='';
+            }
+        }
+
+        $result=strtoupper((string)$cfg['metodo_envio'])==='GRAPH'
             ?$this->graph($cfg,$to,$subject,$html,$replyTo,$bcc,$attachments)
             :$this->smtp($cfg,$to,$subject,$html,$replyTo,$bcc,$attachments);
+
+        $result['valid_recipient_count']=($to!==''?1:0)+count($bcc);
+        if($rejected!==[]) {
+            $result['rejected_recipients']=$rejected;
+            $result['message'].=' '.count($rejected).' invalid recipient(s) skipped.';
+        }
+
+        return $result;
     }
 
-    private function normalizeEmails(array $emails,string $primary=''):array {
+    private function normalizeEmails(
+        array $emails,
+        string $primary='',
+        array &$rejected=[]
+    ):array {
         $normalized=[];
         foreach($emails as $email) {
-            $email=strtolower(trim((string)$email));
-            if($email===''||!filter_var($email,FILTER_VALIDATE_EMAIL))continue;
-            if($primary!==''&&strcasecmp($email,$primary)===0)continue;
-            $normalized[$email]=$email;
+            $validation=EmailValidator::validate((string)$email);
+            if(!$validation['valid']) {
+                $rejected[]=$this->rejectedRecipient($validation,'bcc');
+                continue;
+            }
+
+            $normalizedEmail=(string)$validation['email'];
+            if($primary!==''&&strcasecmp($normalizedEmail,$primary)===0)continue;
+            $normalized[strtolower($normalizedEmail)]=$normalizedEmail;
         }
         return array_values($normalized);
+    }
+
+    private function rejectedRecipient(array $validation,string $role):array {
+        $rejected=[
+            'email'=>(string)($validation['email']??''),
+            'role'=>$role,
+            'reason_code'=>(string)($validation['reason_code']??'invalid'),
+            'reason'=>(string)($validation['reason']??'Invalid email recipient.'),
+            'suggestion'=>(string)($validation['suggestion']??''),
+        ];
+
+        $this->logRejectedRecipient($rejected);
+        return $rejected;
+    }
+
+    private function logRejectedRecipient(array $rejected):void {
+        static $logged=[];
+        $key=hash('sha256',json_encode($rejected,JSON_UNESCAPED_UNICODE));
+        if(isset($logged[$key]))return;
+        $logged[$key]=true;
+
+        log_activity(
+            'email_recipient_rejected',
+            'Rejected invalid email recipient: '.($rejected['email']?:'[empty]').' ('.$rejected['reason'].')',
+            $rejected
+        );
     }
 
     private function normalizeAttachments(array $attachments,int $maxTotalBytes):array {
@@ -155,9 +225,9 @@ class EmailService {
 
         $message=[
             'subject'=>$subject,
-            'body'=>['contentType'=>'HTML','content'=>$html],
-            'toRecipients'=>[['emailAddress'=>['address'=>$to]]]
+            'body'=>['contentType'=>'HTML','content'=>$html]
         ];
+        if($to!=='')$message['toRecipients']=[['emailAddress'=>['address'=>$to]]];
         if($replyTo!=='')$message['replyTo']=[['emailAddress'=>['address'=>$replyTo]]];
         if($bcc)$message['bccRecipients']=array_map(static fn(string $email)=>['emailAddress'=>['address'=>$email]],$bcc);
 
@@ -230,14 +300,14 @@ class EmailService {
             $this->cmd($fp,base64_encode($user),[334]);
             $this->cmd($fp,base64_encode($pass),[235]);
             $this->cmd($fp,'MAIL FROM:<'.$user.'>',[250]);
-            $this->cmd($fp,'RCPT TO:<'.$to.'>',[250,251]);
+            if($to!=='')$this->cmd($fp,'RCPT TO:<'.$to.'>',[250,251]);
             foreach($bcc as $bccEmail)$this->cmd($fp,'RCPT TO:<'.$bccEmail.'>',[250,251]);
             $this->cmd($fp,'DATA',[354]);
 
             $boundary='cr_'.bin2hex(random_bytes(12));
             $headers=[
                 'From: Castro\'s Ready <'.$user.'>',
-                'To: <'.$to.'>',
+                $to!==''?'To: <'.$to.'>':'To: undisclosed-recipients:;',
                 'Subject: =?UTF-8?B?'.base64_encode($subject).'?=',
                 'MIME-Version: 1.0',
                 'Content-Type: multipart/mixed; boundary="'.$boundary.'"'
