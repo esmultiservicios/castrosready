@@ -16,17 +16,18 @@ if($_SERVER['REQUEST_METHOD']==='POST') {
             if(!$sess)throw new RuntimeException('Session not found.');
             if(($sess['role_key']??'')==='owner'&&!role_is_owner($me))throw new RuntimeException('Only the Owner can revoke an Owner session.');
             $pdo->prepare('UPDATE admin_sessions SET revoked_at=NOW() WHERE id=?')->execute([$id]);
+            $pdo->prepare('DELETE FROM admin_remember_tokens WHERE admin_id=?')->execute([(int)$sess['admin_id']]);
             log_activity('session_revoke','Revoked an administrator session',['session_id'=>$id]);
             if(hash_equals($sess['session_hash'],session_fingerprint())) {
-                clear_remember_cookie();
-                $_SESSION=[];
-                session_destroy();
+                terminate_admin_authentication(true,false);
                 header('Location: login.php?revoked=1');
                 exit;
             }
             flash('success','Session signed out.');
         } elseif($action==='revoke_others') {
             $pdo->prepare('UPDATE admin_sessions SET revoked_at=NOW() WHERE admin_id=? AND session_hash<>? AND revoked_at IS NULL')->execute([(int)$me['id'],session_fingerprint()]);
+            $pdo->prepare('DELETE FROM admin_remember_tokens WHERE admin_id=?')->execute([(int)$me['id']]);
+            clear_remember_cookie(false);
             flash('success','All your other sessions were signed out.');
         } elseif($action==='cleanup') {
             $pdo->exec('DELETE FROM admin_sessions WHERE last_seen_at < DATE_SUB(NOW(),INTERVAL 60 DAY) OR revoked_at IS NOT NULL');

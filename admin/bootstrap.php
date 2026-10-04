@@ -1,6 +1,8 @@
 <?php
 declare(strict_types=1);
-session_start();
+require_once __DIR__ . '/../core/AdminSessionSecurity.php';
+start_admin_php_session();
+delete_legacy_admin_session_cookie();
 require_once __DIR__ . '/../config/bootstrap.php';
 if (!headers_sent()) {
     header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
@@ -11,12 +13,29 @@ if (!config_ready()) {
     header('Location: ../install/');
     exit;
 }
+
+const ADMIN_SESSION_IDLE_TIMEOUT = 3600;
+const ADMIN_SESSION_ABSOLUTE_TIMEOUT = 43200;
+const ADMIN_REMEMBER_TOKEN_LIFETIME = 2592000;
+const ADMIN_TWO_FACTOR_TIMEOUT = 600;
+
 function remember_cookie_name(): string {
     return 'cr_admin_remember';
 }
-function clear_remember_cookie(): void {
+
+function remember_cookie_options(int $expires): array {
+    return [
+        'expires'=>$expires,
+        'path'=>'/',
+        'secure'=>admin_request_uses_https(),
+        'httponly'=>true,
+        'samesite'=>'Lax',
+    ];
+}
+
+function clear_remember_cookie(bool $revokeDatabase=true): void {
     $name=remember_cookie_name();
-    if(!empty($_COOKIE[$name])) {
+    if($revokeDatabase&&!empty($_COOKIE[$name])) {
         $parts=explode(':',(string)$_COOKIE[$name],2);
         if(count($parts)===2) {
             try {
@@ -25,23 +44,39 @@ function clear_remember_cookie(): void {
             }
         }
     }
-    setcookie($name,'',[ 'expires'=>time()-3600,'path'=>'/','secure'=>!empty($_SERVER['HTTPS'])&&$_SERVER['HTTPS']!=='off','httponly'=>true,'samesite'=>'Lax' ]);
+    if(!headers_sent())setcookie($name,'',remember_cookie_options(time()-42000));
     unset($_COOKIE[$name]);
 }
+
+function establish_admin_session(int $adminId,string $username,int $authenticatedAt,?int $rememberExpiresAt=null): void {
+    $_SESSION=[];
+    session_regenerate_id(true);
+    $now=time();
+    $_SESSION['cr_admin_id']=$adminId;
+    $_SESSION['cr_admin_user']=$username;
+    $_SESSION['cr_admin_authenticated_at']=$authenticatedAt;
+    $_SESSION['cr_admin_last_activity']=$now;
+    $_SESSION['cr_admin_rotated_at']=$now;
+    if($rememberExpiresAt!==null)$_SESSION['cr_admin_remember_expires_at']=$rememberExpiresAt;
+    else unset($_SESSION['cr_admin_remember_expires_at']);
+}
+
 function create_remember_token(int $adminId): void {
     try {
         $selector=bin2hex(random_bytes(9));
         $validator=bin2hex(random_bytes(32));
         $hash=hash('sha256',$validator);
-        $expires=time()+60*60*24*30;
+        $expires=time()+ADMIN_REMEMBER_TOKEN_LIFETIME;
         db()->prepare('DELETE FROM admin_remember_tokens WHERE admin_id=? OR expires_at<NOW()')->execute([$adminId]);
         db()->prepare('INSERT INTO admin_remember_tokens(admin_id,selector,token_hash,expires_at) VALUES(?,?,?,?)')->execute([$adminId,$selector,$hash,date('Y-m-d H:i:s',$expires)]);
         $value=$selector.':'.$validator;
-        setcookie(remember_cookie_name(),$value,['expires'=>$expires,'path'=>'/','secure'=>!empty($_SERVER['HTTPS'])&&$_SERVER['HTTPS']!=='off','httponly'=>true,'samesite'=>'Lax']);
+        setcookie(remember_cookie_name(),$value,remember_cookie_options($expires));
         $_COOKIE[remember_cookie_name()]=$value;
+        $_SESSION['cr_admin_remember_expires_at']=$expires;
     } catch(Throwable $e) {
     }
 }
+
 function try_remember_login(): void {
     if(!empty($_SESSION['cr_admin_id'])||empty($_COOKIE[remember_cookie_name()]))return;
     $parts=explode(':',(string)$_COOKIE[remember_cookie_name()],2);
@@ -56,17 +91,29 @@ function try_remember_login(): void {
         return;
     }
     try {
-        $st=db()->prepare('SELECT t.admin_id,t.token_hash,u.username FROM admin_remember_tokens t JOIN admin_users u ON u.id=t.admin_id AND u.active=1 WHERE t.selector=? AND t.expires_at>NOW() LIMIT 1');
+        $st=db()->prepare('SELECT t.id,t.admin_id,t.token_hash,t.expires_at,t.created_at,u.username FROM admin_remember_tokens t JOIN admin_users u ON u.id=t.admin_id AND u.active=1 WHERE t.selector=? AND t.expires_at>NOW() LIMIT 1');
         $st->execute([$selector]);
         $row=$st->fetch();
         if(!$row||!hash_equals((string)$row['token_hash'],hash('sha256',$validator))) {
             clear_remember_cookie();
             return;
         }
-        session_regenerate_id(true);
-        $_SESSION['cr_admin_id']=(int)$row['admin_id'];
-        $_SESSION['cr_admin_user']=$row['username'];
+        $authenticatedAt=strtotime((string)$row['created_at'])?:0;
+        $rememberExpiresAt=strtotime((string)$row['expires_at'])?:0;
+        if($authenticatedAt<=0||$rememberExpiresAt<=time()||(time()-$authenticatedAt)>=ADMIN_SESSION_ABSOLUTE_TIMEOUT) {
+            clear_remember_cookie();
+            return;
+        }
+
+        $newSelector=bin2hex(random_bytes(9));
+        $newValidator=bin2hex(random_bytes(32));
+        db()->prepare('UPDATE admin_remember_tokens SET selector=?,token_hash=? WHERE id=?')->execute([$newSelector,hash('sha256',$newValidator),(int)$row['id']]);
+        $newCookieValue=$newSelector.':'.$newValidator;
+        setcookie(remember_cookie_name(),$newCookieValue,remember_cookie_options($rememberExpiresAt));
+        $_COOKIE[remember_cookie_name()]=$newCookieValue;
+        establish_admin_session((int)$row['admin_id'],(string)$row['username'],$authenticatedAt,$rememberExpiresAt);
     } catch(Throwable $e) {
+        clear_remember_cookie(false);
     }
 }
 function request_ip(): string {
@@ -78,23 +125,92 @@ function request_user_agent(): string {
 function session_fingerprint(): string {
     return hash('sha256',session_id());
 }
+
+function auth_request_expects_json(): bool {
+    $requestedWith=strtolower((string)($_SERVER['HTTP_X_REQUESTED_WITH']??''));
+    $accept=strtolower((string)($_SERVER['HTTP_ACCEPT']??''));
+    $fetchDestination=strtolower((string)($_SERVER['HTTP_SEC_FETCH_DEST']??''));
+
+    return $requestedWith==='xmlhttprequest'
+        || str_contains($accept,'application/json')
+        || $fetchDestination==='empty';
+}
+
+function revoke_current_admin_session(): void {
+    if(session_status()!==PHP_SESSION_ACTIVE||session_id()==='')return;
+    try {
+        db()->prepare('UPDATE admin_sessions SET revoked_at=NOW() WHERE session_hash=? AND revoked_at IS NULL')->execute([session_fingerprint()]);
+    } catch(Throwable $e) {
+    }
+}
+
+function terminate_admin_authentication(bool $revokeRemember=true,bool $restartSession=false): void {
+    $adminId=(int)($_SESSION['cr_admin_id']??0);
+    revoke_current_admin_session();
+
+    if($revokeRemember&&$adminId>0) {
+        try {
+            db()->prepare('DELETE FROM admin_remember_tokens WHERE admin_id=?')->execute([$adminId]);
+        } catch(Throwable $e) {
+        }
+    }
+
+    clear_remember_cookie($revokeRemember&&$adminId===0);
+    $_SESSION=[];
+    delete_admin_session_cookie();
+    if(session_status()===PHP_SESSION_ACTIVE)session_destroy();
+
+    if($restartSession)start_admin_php_session();
+}
+
+function respond_to_authentication_failure(string $reason='expired'): void {
+    terminate_admin_authentication(true,false);
+
+    if(auth_request_expects_json()) {
+        http_response_code(401);
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode([
+            'ok'=>false,
+            'error'=>'authentication_required',
+            'reason'=>$reason,
+            'message'=>'Your administrator session expired for security. Please sign in again.',
+            'login_url'=>'login.php?expired=1',
+        ],JSON_UNESCAPED_SLASHES);
+        exit;
+    }
+
+    header('Location: login.php?'.($reason==='revoked'?'revoked=1':'expired=1'));
+    exit;
+}
+
 function sync_admin_session(): void {
     if(empty($_SESSION['cr_admin_id'])||session_status()!==PHP_SESSION_ACTIVE)return;
+
+    $now=time();
+    $authenticatedAt=(int)($_SESSION['cr_admin_authenticated_at']??0);
+    $lastActivity=(int)($_SESSION['cr_admin_last_activity']??0);
+
+    if($authenticatedAt<=0||$lastActivity<=0)respond_to_authentication_failure('expired');
+    if(($now-$lastActivity)>=ADMIN_SESSION_IDLE_TIMEOUT)respond_to_authentication_failure('idle');
+    if(($now-$authenticatedAt)>=ADMIN_SESSION_ABSOLUTE_TIMEOUT)respond_to_authentication_failure('absolute');
+
     try {
         $hash=session_fingerprint();
-        $st=db()->prepare('SELECT revoked_at FROM admin_sessions WHERE session_hash=? LIMIT 1');
+        $st=db()->prepare('SELECT admin_id,revoked_at,(last_seen_at < DATE_SUB(NOW(),INTERVAL 60 MINUTE)) AS idle_expired FROM admin_sessions WHERE session_hash=? LIMIT 1');
         $st->execute([$hash]);
-        $revoked=$st->fetchColumn();
-        if($revoked) {
-            $_SESSION=[];
-            clear_remember_cookie();
-            session_destroy();
-            header('Location: login.php?revoked=1');
-            exit;
+        $persisted=$st->fetch();
+        if($persisted) {
+            if(!empty($persisted['revoked_at'])||(int)$persisted['admin_id']!==(int)$_SESSION['cr_admin_id']) {
+                respond_to_authentication_failure('revoked');
+            }
+            if((int)($persisted['idle_expired']??0)===1) {
+                respond_to_authentication_failure('idle');
+            }
         }
         db()->prepare('INSERT INTO admin_sessions(admin_id,session_hash,ip_address,user_agent,last_seen_at) VALUES(?,?,?,?,NOW()) ON DUPLICATE KEY UPDATE admin_id=VALUES(admin_id),ip_address=VALUES(ip_address),user_agent=VALUES(user_agent),last_seen_at=NOW()')->execute([(int)$_SESSION['cr_admin_id'],$hash,request_ip(),request_user_agent()]);
     } catch(Throwable $e) {
     }
+    $_SESSION['cr_admin_last_activity']=$now;
 }
 function record_login_event(?int $adminId,string $username,bool $success): void {
     try {
@@ -107,6 +223,17 @@ function is_logged_in(): bool {
 }
 function require_login(): void {
     if(!is_logged_in()) {
+        if(auth_request_expects_json()) {
+            http_response_code(401);
+            header('Content-Type: application/json; charset=utf-8');
+            echo json_encode([
+                'ok'=>false,
+                'error'=>'authentication_required',
+                'message'=>'Authentication is required.',
+                'login_url'=>'login.php',
+            ],JSON_UNESCAPED_SLASHES);
+            exit;
+        }
         header('Location: login.php');
         exit;
     }
@@ -114,9 +241,7 @@ function require_login(): void {
         $st=db()->prepare('SELECT active FROM admin_users WHERE id=?');
         $st->execute([(int)$_SESSION['cr_admin_id']]);
         if((int)$st->fetchColumn()!==1) {
-            $_SESSION=[];
-            clear_remember_cookie();
-            session_destroy();
+            terminate_admin_authentication(true,false);
             header('Location: login.php?disabled=1');
             exit;
         }
@@ -218,8 +343,19 @@ function mark_all_notifications_read(?int $adminId=null): void {
     } catch(Throwable $e) {
     }
 }
-try_remember_login();
-sync_admin_session();
+function fresh_login_requested(): bool {
+    $script=basename((string)($_SERVER['SCRIPT_NAME']??''));
+    return $script==='login.php'
+        &&($_SERVER['REQUEST_METHOD']??'GET')==='GET'
+        &&($_GET['fresh']??'')==='1';
+}
+
+if(fresh_login_requested()) {
+    terminate_admin_authentication(true,true);
+} else {
+    try_remember_login();
+    sync_admin_session();
+}
 function base32_encode_raw(string $data): string {
     $alphabet='ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
     $bits='';

@@ -26,12 +26,11 @@ if($_SERVER['REQUEST_METHOD']==='POST') {
             $_SESSION['cr_2fa_pending_id']=(int)$row['id'];
             $_SESSION['cr_2fa_pending_user']=$row['username'];
             $_SESSION['cr_2fa_remember']=isset($_POST['remember_me'])?1:0;
+            $_SESSION['cr_2fa_started_at']=time();
             header('Location: two-factor.php');
             exit;
         }
-        session_regenerate_id(true);
-        $_SESSION['cr_admin_id']=(int)$row['id'];
-        $_SESSION['cr_admin_user']=$row['username'];
+        establish_admin_session((int)$row['id'],(string)$row['username'],time());
         db()->prepare('UPDATE admin_users SET last_login_at=NOW(),last_login_ip=?,last_user_agent=? WHERE id=?')->execute([request_ip(),request_user_agent(),(int)$row['id']]);
         record_login_event((int)$row['id'],$u,true);
         log_activity('login','Administrator signed in');
@@ -95,6 +94,20 @@ if(isset($_GET['disabled'])):
 ?>
 
 <div class="alert warning">Your administrator account is disabled.</div><?php
+endif;
+?>
+<?php
+if(isset($_GET['expired'])):
+?>
+
+<div class="alert warning">Your administrator session expired for security. Please sign in again.</div><?php
+endif;
+?>
+<?php
+if(isset($_GET['fresh'])):
+?>
+
+<div class="alert info">Enter your credentials to start a new administrator session.</div><?php
 endif;
 ?>
 <?php

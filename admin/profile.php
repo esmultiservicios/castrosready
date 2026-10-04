@@ -37,6 +37,8 @@ if($_SERVER['REQUEST_METHOD']==='POST') {
         elseif($n!==$n2)$error='New passwords do not match.';
         else {
             $pdo->prepare('UPDATE admin_users SET password_hash=? WHERE id=?')->execute([password_hash($n,PASSWORD_DEFAULT),$row['id']]);
+            $pdo->prepare('DELETE FROM admin_remember_tokens WHERE admin_id=?')->execute([$row['id']]);
+            clear_remember_cookie(false);
             session_regenerate_id(true);
             sync_admin_session();
             $pdo->prepare('UPDATE admin_sessions SET revoked_at=NOW() WHERE admin_id=? AND session_hash<>? AND revoked_at IS NULL')->execute([$row['id'],session_fingerprint()]);
@@ -92,8 +94,7 @@ if($_SERVER['REQUEST_METHOD']==='POST') {
                 } catch(Throwable $e) {
                 }
                 $pdo->exec('DELETE FROM admin_users');
-                $_SESSION=[];
-                session_destroy();
+                terminate_admin_authentication(true,false);
                 header('Location: setup.php?reset=1');
                 exit;
             }

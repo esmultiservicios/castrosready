@@ -1,6 +1,10 @@
 <?php
 declare(strict_types=1);
-session_start();
+require_once __DIR__.'/core/AdminSessionSecurity.php';
+$adminPreviewRequested=($_GET['draft']??'')==='1'||($_GET['preview']??'')==='1';
+if($adminPreviewRequested&&!empty($_COOKIE[CASTROS_READY_ADMIN_SESSION_NAME])) {
+    start_admin_php_session();
+}
 require __DIR__.'/config/bootstrap.php';
 require_once __DIR__.'/core/PublicFormProtection.php';
 if (!headers_sent()) {
@@ -57,7 +61,27 @@ code {
 </html><?php
 exit;
 }
-$draftPreview=!empty($_SESSION['cr_admin_id'])&&($_GET['draft']??'')==='1';
+$adminSessionIsCurrent=!empty($_SESSION['cr_admin_id'])
+    && (int)($_SESSION['cr_admin_authenticated_at']??0)>0
+    && (int)($_SESSION['cr_admin_last_activity']??0)>0
+    && (time()-(int)$_SESSION['cr_admin_authenticated_at'])<43200
+    && (time()-(int)$_SESSION['cr_admin_last_activity'])<3600;
+if($adminSessionIsCurrent) {
+    try {
+        $sessionHash=hash('sha256',session_id());
+        $previewSession=db()->prepare('SELECT COUNT(*) FROM admin_sessions s JOIN admin_users u ON u.id=s.admin_id AND u.active=1 WHERE s.session_hash=? AND s.admin_id=? AND s.revoked_at IS NULL AND s.last_seen_at>=DATE_SUB(NOW(),INTERVAL 60 MINUTE)');
+        $previewSession->execute([$sessionHash,(int)$_SESSION['cr_admin_id']]);
+        $adminSessionIsCurrent=(int)$previewSession->fetchColumn()===1;
+        if($adminSessionIsCurrent) {
+            db()->prepare('UPDATE admin_sessions SET last_seen_at=NOW() WHERE session_hash=?')->execute([$sessionHash]);
+            $_SESSION['cr_admin_last_activity']=time();
+        }
+    } catch(Throwable $e) {
+        $adminSessionIsCurrent=false;
+    }
+}
+if(session_status()===PHP_SESSION_ACTIVE)session_write_close();
+$draftPreview=$adminSessionIsCurrent&&($_GET['draft']??'')==='1';
 if($draftPreview) {
     $draft=draft_content();
     if($draft)$content=array_replace($content,$draft);
@@ -85,7 +109,7 @@ $email=$settings['email']??'castrosreadycompany@gmail.com';
 $turnstileSiteKey=PublicFormProtection::turnstileSiteKey();
 $favicon=$settings['favicon_path']??'assets/logo.jpg';
 $maintenance=($settings['maintenance_mode']??'0')==='1';
-$adminPreview=!empty($_SESSION['cr_admin_id'])&&($_GET['preview']??'')==='1';
+$adminPreview=$adminSessionIsCurrent&&($_GET['preview']??'')==='1';
 if($maintenance&&!$adminPreview) {
     $mt=$settings['maintenance_title']??'We are improving our website.';
     $mx=$settings['maintenance_text']??'We will be back shortly.';
