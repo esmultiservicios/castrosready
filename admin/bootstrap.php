@@ -23,6 +23,10 @@ function remember_cookie_name(): string {
     return 'cr_admin_remember';
 }
 
+function remembered_identifier_cookie_name(): string {
+    return 'cr_admin_login_identifier';
+}
+
 function remember_cookie_options(int $expires): array {
     return [
         'expires'=>$expires,
@@ -46,6 +50,25 @@ function clear_remember_cookie(bool $revokeDatabase=true): void {
     }
     if(!headers_sent())setcookie($name,'',remember_cookie_options(time()-42000));
     unset($_COOKIE[$name]);
+}
+
+function remembered_login_identifier(): string {
+    $identifier=trim((string)($_COOKIE[remembered_identifier_cookie_name()]??''));
+    if($identifier===''||strlen($identifier)>180||preg_match('/[\x00-\x1F\x7F]/',$identifier))return '';
+    return $identifier;
+}
+
+function remember_login_identifier(string $identifier): void {
+    $identifier=trim($identifier);
+    if($identifier===''||strlen($identifier)>180)return;
+    $expires=time()+ADMIN_REMEMBER_TOKEN_LIFETIME;
+    setcookie(remembered_identifier_cookie_name(),$identifier,remember_cookie_options($expires));
+    $_COOKIE[remembered_identifier_cookie_name()]=$identifier;
+}
+
+function clear_remembered_login_identifier(): void {
+    if(!headers_sent())setcookie(remembered_identifier_cookie_name(),'',remember_cookie_options(time()-42000));
+    unset($_COOKIE[remembered_identifier_cookie_name()]);
 }
 
 function establish_admin_session(int $adminId,string $username,int $authenticatedAt,?int $rememberExpiresAt=null): void {

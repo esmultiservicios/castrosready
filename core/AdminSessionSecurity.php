@@ -45,7 +45,14 @@ function configure_admin_php_session(): void
     ini_set('session.gc_maxlifetime', '43200');
 
     session_name(CASTROS_READY_ADMIN_SESSION_NAME);
-    session_set_cookie_params(admin_session_cookie_options());
+    session_set_cookie_params([
+        'lifetime' => 0,
+        'path' => '/',
+        'domain' => '',
+        'secure' => admin_request_uses_https(),
+        'httponly' => true,
+        'samesite' => 'Lax',
+    ]);
 }
 
 function start_admin_php_session(): void

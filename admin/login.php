@@ -13,12 +13,16 @@ $set=settings();
 $favicon=$set['favicon_path']??($set['admin_logo_path']??'assets/logo.jpg');
 $brand=$set['admin_brand_name']??"Castro's Ready Admin";
 $logo=$set['admin_logo_path']??'assets/logo.jpg';
+$loginIdentifier=remembered_login_identifier();
+$rememberSelected=$loginIdentifier!=='';
 if($_SERVER['REQUEST_METHOD']==='POST') {
     verify_csrf();
     $u=trim((string)($_POST['username']??''));
+    $loginIdentifier=$u;
+    $rememberSelected=isset($_POST['remember_me']);
     $p=(string)($_POST['password']??'');
-    $st=db()->prepare('SELECT id,username,password_hash,active,two_factor_enabled,two_factor_secret_enc FROM admin_users WHERE username=? LIMIT 1');
-    $st->execute([$u]);
+    $st=db()->prepare('SELECT id,username,email,password_hash,active,two_factor_enabled,two_factor_secret_enc FROM admin_users WHERE username=? OR email=? LIMIT 1');
+    $st->execute([$u,$u]);
     $row=$st->fetch();
     if($row&&(int)$row['active']===1&&password_verify($p,$row['password_hash'])) {
         if((int)($row['two_factor_enabled']??0)===1&&!empty($row['two_factor_secret_enc'])) {
@@ -26,6 +30,7 @@ if($_SERVER['REQUEST_METHOD']==='POST') {
             $_SESSION['cr_2fa_pending_id']=(int)$row['id'];
             $_SESSION['cr_2fa_pending_user']=$row['username'];
             $_SESSION['cr_2fa_remember']=isset($_POST['remember_me'])?1:0;
+            $_SESSION['cr_2fa_login_identifier']=$u;
             $_SESSION['cr_2fa_started_at']=time();
             header('Location: two-factor.php');
             exit;
@@ -35,8 +40,13 @@ if($_SERVER['REQUEST_METHOD']==='POST') {
         record_login_event((int)$row['id'],$u,true);
         log_activity('login','Administrator signed in');
         admin_notify('info','Administrator login',($row['username']??'Administrator').' signed in to the CMS.','security.php');
-        if(isset($_POST['remember_me'])) create_remember_token((int)$row['id']);
-        else clear_remember_cookie();
+        if(isset($_POST['remember_me'])) {
+            remember_login_identifier($u);
+            create_remember_token((int)$row['id']);
+        } else {
+            clear_remembered_login_identifier();
+            clear_remember_cookie();
+        }
         sync_admin_session();
         header('Location: dashboard.php');
         exit;
@@ -122,13 +132,13 @@ endif;
 
 <form method="post">
 <input type="hidden" name="csrf" value="<?=h(csrf_token())?>">
-<label>Username<input name="username" required autocomplete="username" autofocus>
+<label>Username or email<input name="username" value="<?=h($loginIdentifier)?>" required autocomplete="username" autofocus>
 </label>
 <label>Password<input type="password" name="password" required autocomplete="current-password">
 </label>
 <div class="auth-options">
 <label class="remember-check cr-check">
-<input type="checkbox" name="remember_me" value="1">
+<input type="checkbox" name="remember_me" value="1" <?=$rememberSelected?'checked':''?>>
 <span class="cr-check-box" aria-hidden="true">
 </span>
 <span class="cr-check-text">Remember me</span>

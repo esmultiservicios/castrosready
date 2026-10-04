@@ -7,7 +7,7 @@ if(is_logged_in()) {
 $id=(int)($_SESSION['cr_2fa_pending_id']??0);
 $twoFactorStartedAt=(int)($_SESSION['cr_2fa_started_at']??0);
 if(!$id||$twoFactorStartedAt<=0||(time()-$twoFactorStartedAt)>ADMIN_TWO_FACTOR_TIMEOUT) {
-    unset($_SESSION['cr_2fa_pending_id'],$_SESSION['cr_2fa_pending_user'],$_SESSION['cr_2fa_remember'],$_SESSION['cr_2fa_started_at']);
+    unset($_SESSION['cr_2fa_pending_id'],$_SESSION['cr_2fa_pending_user'],$_SESSION['cr_2fa_remember'],$_SESSION['cr_2fa_login_identifier'],$_SESSION['cr_2fa_started_at']);
     header('Location: login.php');
     exit;
 }
@@ -20,7 +20,7 @@ $st=db()->prepare('SELECT id,username,two_factor_secret_enc,two_factor_enabled,a
 $st->execute([$id]);
 $row=$st->fetch();
 if(!$row||(int)$row['active']!==1||(int)$row['two_factor_enabled']!==1) {
-    unset($_SESSION['cr_2fa_pending_id'],$_SESSION['cr_2fa_pending_user'],$_SESSION['cr_2fa_remember'],$_SESSION['cr_2fa_started_at']);
+    unset($_SESSION['cr_2fa_pending_id'],$_SESSION['cr_2fa_pending_user'],$_SESSION['cr_2fa_remember'],$_SESSION['cr_2fa_login_identifier'],$_SESSION['cr_2fa_started_at']);
     header('Location: login.php');
     exit;
 }
@@ -30,14 +30,20 @@ if($_SERVER['REQUEST_METHOD']==='POST') {
     $secret=secret_decrypt((string)$row['two_factor_secret_enc']);
     if(verify_totp($secret,$code)) {
         $remember=!empty($_SESSION['cr_2fa_remember']);
-        unset($_SESSION['cr_2fa_pending_id'],$_SESSION['cr_2fa_pending_user'],$_SESSION['cr_2fa_remember'],$_SESSION['cr_2fa_started_at']);
+        $loginIdentifier=(string)($_SESSION['cr_2fa_login_identifier']??$row['username']);
+        unset($_SESSION['cr_2fa_pending_id'],$_SESSION['cr_2fa_pending_user'],$_SESSION['cr_2fa_remember'],$_SESSION['cr_2fa_login_identifier'],$_SESSION['cr_2fa_started_at']);
         establish_admin_session((int)$row['id'],(string)$row['username'],time());
         db()->prepare('UPDATE admin_users SET last_login_at=NOW(),last_login_ip=?,last_user_agent=? WHERE id=?')->execute([request_ip(),request_user_agent(),(int)$row['id']]);
         record_login_event((int)$row['id'],$row['username'],true);
         log_activity('login_2fa','Administrator signed in with two-factor authentication');
         admin_notify('info','Secure administrator login',$row['username'].' signed in with two-factor authentication.','security.php');
-        if($remember)create_remember_token((int)$row['id']);
-        else clear_remember_cookie();
+        if($remember) {
+            remember_login_identifier($loginIdentifier);
+            create_remember_token((int)$row['id']);
+        } else {
+            clear_remembered_login_identifier();
+            clear_remember_cookie();
+        }
         sync_admin_session();
         header('Location: dashboard.php');
         exit;
