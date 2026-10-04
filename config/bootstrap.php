@@ -96,8 +96,16 @@ function server_runtime_requirements(): array {
             'key'=>'curl',
             'name'=>'cURL',
             'available'=>extension_loaded('curl')&&function_exists('curl_init'),
-            'purpose'=>'Required to send email through Microsoft Graph.',
+            'purpose'=>'Sends email through Microsoft Graph and connects optional validation services.',
             'install'=>'Search for curl in WHM → EasyApache 4 → PHP Extensions.',
+            'required'=>true,
+        ],
+        [
+            'key'=>'dns',
+            'name'=>'DNS resolver',
+            'available'=>function_exists('dns_get_record'),
+            'purpose'=>'Checks whether public form email domains have valid MX records.',
+            'install'=>'Ask the hosting provider to enable the PHP dns_get_record function.',
             'required'=>true,
         ],
         [

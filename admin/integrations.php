@@ -11,6 +11,8 @@ $apiTypes=['payments'=>'Payments',
 'analytics'=>'Analytics',
 'messaging'=>'Messaging',
 'storage'=>'Storage / Files',
+'email_validation'=>'Email validation',
+'turnstile'=>'Cloudflare Turnstile',
 'custom'=>'Custom API'];
 $authTypes=['api_key'=>'API Key',
 'bearer'=>'Bearer Token',
@@ -42,6 +44,15 @@ if($_SERVER['REQUEST_METHOD']==='POST') {
             $web=trim((string)($_POST['webhook_secret']??''));
             $secret=$secret!==''?secret_encrypt($secret):($old['secret_key']??'');
             $web=$web!==''?secret_encrypt($web):($old['webhook_secret']??'');
+            if(
+                $apiType==='email_validation'
+                && (!filter_var($base,FILTER_VALIDATE_URL)||!str_starts_with(strtolower($base),'https://'))
+            ) {
+                throw new RuntimeException('Email validation requires a valid HTTPS provider URL.');
+            }
+            if($apiType==='turnstile'&&($pub===''||$secret==='')) {
+                throw new RuntimeException('Cloudflare Turnstile requires both the Site Key and Secret Key.');
+            }
             $active=isset($_POST['active'])?1:0;
             if($id)$pdo->prepare('UPDATE api_integrations SET provider_name=?,api_type=?,category=?,environment=?,auth_type=?,base_url=?,public_key=?,secret_key=?,webhook_secret=?,notes=?,active=? WHERE id=?')->execute([$name,$apiType,$category,$env,$authType,$base,$pub,$secret,$web,$notes,$active,$id]);
             else $pdo->prepare('INSERT INTO api_integrations(provider_name,api_type,category,environment,auth_type,base_url,public_key,secret_key,webhook_secret,notes,active) VALUES(?,?,?,?,?,?,?,?,?,?,?)')->execute([$name,$apiType,$category,$env,$authType,$base,$pub,$secret,$web,$notes,$active]);
@@ -117,7 +128,7 @@ endforeach;
 
 </select>
 </label>
-<label>Provider name<input name="provider_name" required placeholder="Stripe, PayPal, HubSpot..." value="<?=h($edit['provider_name']??'')?>">
+<label>Provider name<input name="provider_name" required placeholder="Abstract API, ZeroBounce, Cloudflare..." value="<?=h($edit['provider_name']??'')?>">
 </label>
 <label>Environment<select name="environment">
 <option value="sandbox" <?=($edit['environment']??'sandbox')==='sandbox'?'selected':''?>
@@ -147,7 +158,7 @@ endforeach;
 </select>
 </label>
 </div>
-<label>Base API URL<input name="base_url" placeholder="https://api.provider.com/v1" value="<?=h($edit['base_url']??'')?>">
+<label>Base API URL<input name="base_url" placeholder="https://api.provider.com/v1?email={email}" value="<?=h($edit['base_url']??'')?>">
 </label>
 <label>Public key / Client ID / Username<input name="public_key" value="<?=h($edit['public_key']??'')?>">
 </label>
@@ -161,6 +172,9 @@ endforeach;
 
 </textarea>
 </label>
+<div class="alert info">
+<strong>Public form protection:</strong> choose <b>Email validation</b> to add an optional mailbox-verification provider. Use <code>{email}</code> in its URL when required. Choose <b>Cloudflare Turnstile</b>, place the Site Key in Public key and the Secret Key in Secret key to enable the challenge automatically.
+</div>
 <label class="premium-switch">
 <input type="checkbox" name="active" <?=!empty($edit['active'])?'checked':''?>
 

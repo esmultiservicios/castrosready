@@ -2212,3 +2212,111 @@ body {
         min-height:54px;
     }
 }
+
+/* ==========================================================
+   Public email validation and anti-spam controls
+   ========================================================== */
+.form-honeypot {
+    position:absolute !important;
+    left:-10000px !important;
+    top:auto !important;
+    width:1px !important;
+    height:1px !important;
+    overflow:hidden !important;
+    pointer-events:none !important;
+}
+
+.estimate-form input[aria-invalid="true"] {
+    border-color:#b97800 !important;
+    box-shadow:0 0 0 3px rgba(242, 212, 92, .28);
+}
+
+.email-validation-status {
+    min-height:20px;
+    display:flex;
+    align-items:center;
+    flex-wrap:wrap;
+    gap:7px;
+    margin-top:1px;
+    font-size:13px !important;
+    font-weight:700;
+    line-height:1.4;
+    color:var(--ink);
+}
+
+.email-validation-status:empty {
+    min-height:0;
+    margin-top:0;
+}
+
+.email-validation-status.is-checking,
+.email-validation-status.is-neutral {
+    color:#425957;
+}
+
+.email-validation-status.is-valid {
+    color:#08705e;
+}
+
+.email-validation-status.is-valid::before {
+    content:'✓';
+    display:inline-grid;
+    place-items:center;
+    width:18px;
+    height:18px;
+    flex:0 0 18px;
+    border-radius:50%;
+    background:#dff4eb;
+    color:#08705e;
+    font-size:12px;
+    font-weight:900;
+}
+
+.email-validation-status.is-invalid,
+.email-validation-status.is-suggestion {
+    color:#805400;
+}
+
+.email-suggestion-button {
+    min-height:32px;
+    padding:6px 11px;
+    border:1px solid #d6b63e;
+    border-radius:10px;
+    background:var(--yellow);
+    color:#173f3d;
+    font:800 12px 'DM Sans',sans-serif;
+    cursor:pointer;
+}
+
+.email-suggestion-button:hover,
+.email-suggestion-button:focus-visible {
+    background:#e5c443;
+    color:#173f3d;
+    outline:2px solid var(--teal);
+    outline-offset:2px;
+}
+
+.turnstile-wrap {
+    display:flex;
+    align-items:center;
+    justify-content:flex-start;
+    min-height:66px;
+    margin:0 0 16px;
+    overflow-x:auto;
+}
+
+@media(max-width:560px) {
+    .email-validation-status {
+        align-items:flex-start;
+        flex-direction:column;
+    }
+
+    .email-validation-status.is-valid {
+        flex-direction:row;
+        align-items:center;
+    }
+
+    .email-suggestion-button {
+        width:100%;
+    }
+}

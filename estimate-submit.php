@@ -2,7 +2,9 @@
 declare(strict_types=1);
 require __DIR__.'/config/bootstrap.php';
 require_once __DIR__.'/core/EmailService.php';
+require_once __DIR__.'/core/PublicFormProtection.php';
 header('Content-Type: application/json; charset=utf-8');
+header('Cache-Control: no-store, max-age=0');
 
 function estimate_public_base_url(array $settings): string {
     $configured=trim((string)($settings['website']??''));
@@ -23,6 +25,20 @@ function estimate_public_base_url(array $settings): string {
 
 try {
     if($_SERVER['REQUEST_METHOD']!=='POST')throw new RuntimeException('Invalid request.');
+
+    if(PublicFormProtection::isHoneypotFilled($_POST)) {
+        echo json_encode([
+            'ok'=>true,
+            'message'=>'Thank you. Your free estimate request has been received.'
+        ]);
+        exit;
+    }
+
+    if(!PublicFormProtection::consumeRateLimit('estimate_submission',5,900,1800)) {
+        http_response_code(429);
+        throw new RuntimeException('Too many requests were submitted. Please wait a few minutes and try again.');
+    }
+
     $name=trim((string)($_POST['name']??''));
     $phone=trim((string)($_POST['phone']??''));
     $email=trim((string)($_POST['email']??''));
@@ -31,7 +47,26 @@ try {
     $date=trim((string)($_POST['date']??''));
     $message=trim((string)($_POST['message']??''));
     if($name===''&&$phone===''&&$email===''&&$message==='')throw new RuntimeException('Please provide at least your name or contact information.');
-    if($email!==''&&!filter_var($email,FILTER_VALIDATE_EMAIL))throw new RuntimeException('Please enter a valid email address.');
+
+    PublicFormProtection::assertHumanContent([
+        'name'=>$name,
+        'phone'=>$phone,
+        'email'=>$email,
+        'address'=>$address,
+        'service'=>$service,
+        'date'=>$date,
+        'message'=>$message,
+    ]);
+
+    if($email!=='') {
+        $emailValidation=PublicFormProtection::validateEmail($email);
+        if(!$emailValidation['valid'])throw new RuntimeException((string)$emailValidation['message']);
+    }
+
+    if(!PublicFormProtection::verifyTurnstile(trim((string)($_POST['cf-turnstile-response']??'')))) {
+        throw new RuntimeException('Please complete the security verification and try again.');
+    }
+
     $files=normalized_files('photos');
     if(count($files)>8)throw new RuntimeException('Please upload no more than 8 images.');
 
@@ -107,18 +142,6 @@ try {
             );
         }
 
-        if(filter_var($email,FILTER_VALIDATE_EMAIL)) {
-            $customerResult=$mailer->sendWithFallback(
-                [4,1],
-                $email,
-                "We received your Castro's Ready request",
-                EmailTemplates::estimateCustomer($request,$set),
-                '',
-                [],
-                $mailAttachments
-            );
-            if(!$customerResult['success'])admin_notify('warning','Customer confirmation not sent','Estimate #'.$id.' was saved, but its automatic confirmation email could not be delivered.','email.php');
-        }
         if(!$adminResult['success'])admin_notify('warning','Estimate email not sent','Estimate #'.$id.' was saved, but the notification email could not be delivered.','email.php');
     } catch(Throwable $mailError) {
         admin_notify('warning','Estimate email error','Estimate #'.$id.' was saved, but email delivery raised an error.','email.php');
@@ -127,6 +150,6 @@ try {
     echo json_encode(['ok'=>true,'message'=>'Thank you. Your free estimate request has been received.','request_id'=>$id]);
 } catch(Throwable $e) {
     if(isset($pdo)&&$pdo instanceof PDO&&$pdo->inTransaction())$pdo->rollBack();
-    http_response_code(422);
+    if(http_response_code()<400)http_response_code(422);
     echo json_encode(['ok'=>false,'message'=>$e->getMessage()]);
 }

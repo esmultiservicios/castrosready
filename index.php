@@ -2,6 +2,7 @@
 declare(strict_types=1);
 session_start();
 require __DIR__.'/config/bootstrap.php';
+require_once __DIR__.'/core/PublicFormProtection.php';
 if (!headers_sent()) {
     header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
     header('Pragma: no-cache');
@@ -81,6 +82,7 @@ function public_video_embed(array $video): string {
 $phone=$settings['phone']??'+1 202-644-2717';
 $digits=preg_replace('/\D+/','',$settings['phone_digits']??'12026442717');
 $email=$settings['email']??'castrosreadycompany@gmail.com';
+$turnstileSiteKey=PublicFormProtection::turnstileSiteKey();
 $favicon=$settings['favicon_path']??'assets/logo.jpg';
 $maintenance=($settings['maintenance_mode']??'0')==='1';
 $adminPreview=!empty($_SESSION['cr_admin_id'])&&($_GET['preview']??'')==='1';
@@ -689,6 +691,10 @@ if(section_enabled('estimate')):
 </div>
 </div>
 <form class="estimate-form reveal" id="estimateForm" enctype="multipart/form-data">
+<div class="form-honeypot" aria-hidden="true">
+<label>Website URL<input type="text" name="website_url" tabindex="-1" autocomplete="off">
+</label>
+</div>
 <div class="field-row">
 <label>Full Name<input type="text" name="name" placeholder="Your name">
 </label>
@@ -696,7 +702,8 @@ if(section_enabled('estimate')):
 </label>
 </div>
 <div class="field-row">
-<label>Email<input type="email" name="email" placeholder="you@email.com">
+<label>Email<input type="email" name="email" placeholder="you@email.com" autocomplete="email" aria-describedby="estimateEmailStatus">
+<span class="email-validation-status" id="estimateEmailStatus" data-email-status aria-live="polite"></span>
 </label>
 <label>Desired Date<input type="date" name="date">
 </label>
@@ -728,6 +735,11 @@ endforeach;
 <div class="public-upload-preview" data-public-upload-preview>
 </div>
 </div>
+<?php if($turnstileSiteKey!==''): ?>
+<div class="turnstile-wrap">
+<div class="cf-turnstile" data-sitekey="<?=h($turnstileSiteKey)?>" data-theme="light"></div>
+</div>
+<?php endif; ?>
 <button type="submit" class="btn btn-primary btn-full">Send Free Estimate Request</button>
 <a class="whatsapp-btn" target="_blank" rel="noopener" href="https://wa.me/<?=$digits?>
 
@@ -868,6 +880,9 @@ if(($settings['whatsapp_enabled']??'1')==='1'):
 endif;
 ?>
 
+<?php if($turnstileSiteKey!==''): ?>
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+<?php endif; ?>
 <script src="<?=h(versioned_asset('assets/site.js', 'assets/site.js'))?>">
 </script>
 </body>

@@ -118,19 +118,209 @@ document.addEventListener('keydown',e=> {
 }
 );
 const form=document.getElementById('estimateForm'),toast=document.getElementById('toast');
-form?.addEventListener('submit',async e=> {
-  e.preventDefault();const btn=form.querySelector('button[type="submit"]'),old=btn.textContent;btn.disabled=true;btn.textContent='Sending...';try {
-    const res=await fetch('estimate-submit.php', {
-      method:'POST',body:new FormData(form)
-    }
-    ),data=await res.json();toast.textContent=data.message||'Request received.';toast.classList.add('show');if(data.ok) {
-      form.reset();selected=[];renderPublicFiles()
-    }
-  } catch {
-    toast.textContent='We could not send the request. Please contact us by phone or WhatsApp.';toast.classList.add('show')
-  } finally {
-    btn.disabled=false;btn.textContent=old;setTimeout(()=>toast.classList.remove('show'),5200)
+const emailInput=form?.querySelector('input[name="email"]');
+const emailStatus=form?.querySelector('[data-email-status]');
+const commonEmailCorrections= {
+  'gmail.con':'gmail.com',
+  'gmail.co':'gmail.com',
+  'gmail.cmo':'gmail.com',
+  'gmial.com':'gmail.com',
+  'gmai.com':'gmail.com',
+  'gamil.com':'gmail.com',
+  'hotmal.com':'hotmail.com',
+  'hotmai.com':'hotmail.com',
+  'hotmail.con':'hotmail.com',
+  'outlook.con':'outlook.com',
+  'outlok.com':'outlook.com',
+  'outloo.com':'outlook.com',
+  'yahoo.con':'yahoo.com',
+  'yaho.com':'yahoo.com',
+  'icloud.con':'icloud.com'
+};
+let emailValidationTimer=null;
+let emailValidationRequest=null;
+let emailValidationState='idle';
+let lastValidatedEmail='';
+
+function showToast(message) {
+  if(!toast)return;
+  toast.textContent=message;
+  toast.classList.add('show');
+  window.setTimeout(()=>toast.classList.remove('show'),5200)
+}
+
+function setEmailStatus(state,message='',suggestion='') {
+  emailValidationState=state;
+  if(!emailStatus||!emailInput)return;
+
+  emailStatus.className='email-validation-status';
+  emailStatus.replaceChildren();
+  emailInput.removeAttribute('aria-invalid');
+
+  if(state==='idle')return;
+
+  emailStatus.classList.add(`is-${state}`);
+  const text=document.createElement('span');
+  text.textContent=message;
+  emailStatus.appendChild(text);
+
+  if(state==='invalid'||state==='suggestion') {
+    emailInput.setAttribute('aria-invalid','true')
+  }
+
+  if(suggestion) {
+    const useSuggestion=document.createElement('button');
+    useSuggestion.type='button';
+    useSuggestion.className='email-suggestion-button';
+    useSuggestion.textContent=`Use ${suggestion}`;
+    useSuggestion.addEventListener('click',()=> {
+      emailInput.value=suggestion;
+      emailInput.focus();
+      validateEmailField(true)
+    });
+    emailStatus.appendChild(useSuggestion)
   }
 }
-);
+
+function localEmailSuggestion(email) {
+  const at=email.lastIndexOf('@');
+  if(at<1)return '';
+  const local=email.slice(0,at);
+  const domain=email.slice(at+1).toLowerCase();
+  const correctedDomain=commonEmailCorrections[domain];
+  return correctedDomain?`${local}@${correctedDomain}`:''
+}
+
+async function validateEmailField(force=false) {
+  if(!emailInput)return true;
+
+  const email=emailInput.value.trim();
+  if(email==='') {
+    lastValidatedEmail='';
+    setEmailStatus('idle');
+    return true
+  }
+
+  if(email!==emailInput.value||!emailInput.checkValidity()||/\s/.test(email)) {
+    setEmailStatus('invalid','Enter a valid email address. Example: name@company.com');
+    return false
+  }
+
+  const suggestion=localEmailSuggestion(email);
+  if(suggestion) {
+    setEmailStatus('suggestion',`Did you mean ${suggestion}?`,suggestion);
+    return false
+  }
+
+  if(!force&&lastValidatedEmail===email&&emailValidationState==='valid')return true;
+
+  emailValidationRequest?.abort();
+  emailValidationRequest=new AbortController();
+  setEmailStatus('checking','Checking email...');
+
+  try {
+    const payload=new FormData();
+    payload.append('email',email);
+    const response=await fetch('email-validate.php', {
+      method:'POST',
+      body:payload,
+      headers: {
+        'X-Requested-With':'XMLHttpRequest'
+      },
+      signal:emailValidationRequest.signal
+    });
+    const result=await response.json();
+
+    if(result.valid) {
+      lastValidatedEmail=email;
+      setEmailStatus('valid',result.message||'Valid email');
+      return true
+    }
+
+    const state=result.status==='suggestion'?'suggestion':'invalid';
+    setEmailStatus(
+      state,
+      result.message||'Review the email address and try again.',
+      result.suggestion||''
+    );
+    return false
+  } catch(error) {
+    if(error.name==='AbortError')return false;
+
+    // A temporary validation-service outage must not block a real customer.
+    setEmailStatus('neutral','The address will be verified when you submit the form.');
+    return true
+  }
+}
+
+emailInput?.addEventListener('input',()=> {
+  window.clearTimeout(emailValidationTimer);
+  lastValidatedEmail='';
+  const email=emailInput.value.trim();
+
+  if(email==='') {
+    setEmailStatus('idle');
+    return
+  }
+
+  const suggestion=localEmailSuggestion(email);
+  if(suggestion) {
+    setEmailStatus('suggestion',`Did you mean ${suggestion}?`,suggestion);
+    return
+  }
+
+  if(!emailInput.checkValidity()||/\s/.test(email)) {
+    setEmailStatus('invalid','Enter a valid email address. Example: name@company.com');
+    return
+  }
+
+  setEmailStatus('checking','Checking email...');
+  emailValidationTimer=window.setTimeout(()=>validateEmailField(),550)
+});
+
+emailInput?.addEventListener('blur',()=> {
+  if(emailInput.value.trim()!=='')validateEmailField()
+});
+
+form?.addEventListener('submit',async event=> {
+  event.preventDefault();
+
+  const emailIsValid=await validateEmailField(true);
+  if(!emailIsValid) {
+    emailInput?.focus();
+    showToast('Review the email address before sending your request.');
+    return
+  }
+
+  const button=form.querySelector('button[type="submit"]');
+  const originalText=button.textContent;
+  button.disabled=true;
+  button.textContent='Sending...';
+
+  try {
+    const response=await fetch('estimate-submit.php', {
+      method:'POST',
+      body:new FormData(form),
+      headers: {
+        'X-Requested-With':'XMLHttpRequest'
+      }
+    });
+    const result=await response.json();
+    showToast(result.message||'Request received.');
+
+    if(result.ok) {
+      form.reset();
+      selected=[];
+      renderPublicFiles();
+      lastValidatedEmail='';
+      setEmailStatus('idle');
+      if(window.turnstile)window.turnstile.reset()
+    }
+  } catch(error) {
+    showToast('We could not send the request. Please contact us by phone or WhatsApp.')
+  } finally {
+    button.disabled=false;
+    button.textContent=originalText
+  }
+});
 if(location.hash&&document.querySelector(location.hash))setTimeout(()=>scrollToTarget(location.hash),100);

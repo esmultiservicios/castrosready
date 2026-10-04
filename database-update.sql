@@ -6,6 +6,20 @@
 
 SET NAMES utf8mb4;
 
+-- PUBLIC FORM ANTISPAM RATE LIMITING
+-- Stores only one-way hashes of the visitor IP/session identifiers.
+CREATE TABLE IF NOT EXISTS public_form_rate_limits (
+  action_key VARCHAR(40) NOT NULL,
+  identity_hash CHAR(64) NOT NULL,
+  window_started_at DATETIME NOT NULL,
+  attempts INT UNSIGNED NOT NULL DEFAULT 0,
+  blocked_until DATETIME NULL,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (action_key, identity_hash),
+  KEY idx_public_form_rate_updated (updated_at),
+  KEY idx_public_form_rate_blocked (blocked_until)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- EMAIL DELIVERY: SMTP / MICROSOFT GRAPH
 -- Creates the structures only when an older production database does not have them.
 CREATE TABLE IF NOT EXISTS correo_tipo (
