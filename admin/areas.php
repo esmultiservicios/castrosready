@@ -196,7 +196,7 @@ require __DIR__ . '/_header.php';
                 <input
                     type="checkbox"
                     name="active"
-                    <?= !$edit || !empty($edit['active']) ? 'checked' : '' ?>
+                    <?= !empty($edit['active']) ? 'checked' : '' ?>
                 >
                 <span>Visible</span>
             </label>
@@ -204,6 +204,7 @@ require __DIR__ . '/_header.php';
 
         <div class="form-actions">
             <button type="submit">Save area</button>
+            <a class="button secondary" href="../?preview=1#areas" target="_blank" rel="noopener">Private preview</a>
             <?php if ($edit): ?>
                 <a class="button secondary" href="areas.php">Cancel</a>
             <?php endif; ?>

@@ -244,6 +244,15 @@ $sectionNavigator = [
         'manage_url' => 'gallery.php',
         'manage_label' => 'Manage gallery',
     ],
+    'custom_content' => [
+        'title' => 'Additional Content',
+        'description' => 'Unlimited ordered image and text blocks with private preview.',
+        'icon' => '➕',
+        'anchor' => 'custom-content',
+        'type' => 'module',
+        'manage_url' => 'flexible-content.php',
+        'manage_label' => 'Manage additional content',
+    ],
     'areas' => [
         'title' => 'Service Areas',
         'description' => 'Coverage copy, locations and map.',
@@ -405,8 +414,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $path = upload_image($file, 'about', 'about-artwork', 10);
                     $title = pathinfo((string)$file['name'], PATHINFO_FILENAME);
                     $title = trim(str_replace(['_','-'], ' ', $title));
-                    $pdo->prepare('INSERT INTO about_artworks(title,image_path,sort_order,active) VALUES(?,?,?,1)')
+                    $pdo->prepare('INSERT INTO about_artworks(title,image_path,sort_order,active) VALUES(?,?,?,0)')
                         ->execute([$title,$path,$nextOrder]);
+                    media_add($path,$title?:'About artwork',$nextOrder);
                     $nextOrder += 10;
                 }
             }
@@ -884,7 +894,7 @@ require __DIR__ . '/_header.php';
                     <div class="empty-state compact-empty-state"><strong>No artwork uploaded</strong><span>The public website will show the Mission and Vision text automatically.</span></div>
                 <?php endif; ?>
 
-                <div class="form-actions artwork-actions"><button>Save artwork settings</button></div>
+                <div class="form-actions artwork-actions"><button>Save artwork settings</button><a class="button secondary" href="../?preview=1#about" target="_blank" rel="noopener">Private preview</a></div>
             </form>
 
             <?php foreach($aboutArtworks as $artwork): ?>

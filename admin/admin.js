@@ -5,7 +5,21 @@
   toggle?.addEventListener('click',()=> {
     const o=!side.classList.contains('open');side.classList.toggle('open',o);back?.classList.toggle('show',o);toggle.setAttribute('aria-expanded',String(o))
   }
-  );back?.addEventListener('click',closeSide);qa('.admin-sidebar a').forEach(a=>a.addEventListener('click',closeSide)); qa('.profile-menu').forEach(d=>document.addEventListener('click',e=> {
+  );back?.addEventListener('click',closeSide);
+  const sidebarScrollKey='castros-ready-admin-sidebar-scroll';
+  if(side) {
+    const savedScroll=parseInt(sessionStorage.getItem(sidebarScrollKey)||'0',10);
+    if(Number.isFinite(savedScroll))side.scrollTop=savedScroll;
+    let scrollTimer=0;
+    side.addEventListener('scroll',()=> {
+      window.clearTimeout(scrollTimer);
+      scrollTimer=window.setTimeout(()=>sessionStorage.setItem(sidebarScrollKey,String(side.scrollTop)),80);
+    },{passive:true});
+  }
+  qa('.admin-sidebar a').forEach(a=>a.addEventListener('click',()=> {
+    if(side)sessionStorage.setItem(sidebarScrollKey,String(side.scrollTop));
+    closeSide();
+  })); qa('.profile-menu').forEach(d=>document.addEventListener('click',e=> {
     if(d.open&&!d.contains(e.target))d.open=false
   }
   )); qa('.action-menu').forEach(menu=> {
@@ -53,7 +67,7 @@
     let files=[];
     const accepts=(input.getAttribute('accept')||'').split(',').map(x=>x.trim()).filter(Boolean);
     function allowed(f) {
-      if(!accepts.length)return true;return accepts.some(a=>a.endsWith('/*')?f.type.startsWith(a.slice(0,-1)):f.type===a)
+      if(!accepts.length)return true;return accepts.some(a=>a.startsWith('.')?f.name.toLowerCase().endsWith(a.toLowerCase()):(a.endsWith('/*')?f.type.startsWith(a.slice(0,-1)):f.type===a))
     }
     function render() {
       if(!preview)return;preview.innerHTML='';files.forEach((f,i)=> {
@@ -96,6 +110,15 @@
     }
     );render();
   }
+  qa('input[type=file]').filter(input=>!input.closest('[data-upload-zone]')).forEach(input=> {
+    const zone=document.createElement('div');
+    zone.className='upload-zone premium-media-zone full-width-upload auto-upload-zone';
+    zone.dataset.uploadZone='';
+    zone.tabIndex=0;
+    input.parentNode.insertBefore(zone,input);
+    zone.appendChild(input);
+    zone.insertAdjacentHTML('beforeend','<div class="upload-icon" aria-hidden="true">＋</div><strong>Drop file here</strong><small>Drag & drop, paste from clipboard, or select a file.</small><span class="upload-zone-action">Choose file</span><div class="upload-selection-name" data-upload-name>Drop, paste or choose a file</div><div class="upload-preview premium-upload-preview" data-upload-preview></div>');
+  });
   qa('[data-upload-zone]').forEach(initUpload); qa('[data-method-select]').forEach(sel=> {
     const form=sel.closest('form');const update=()=> {
       qa('[data-method]',form).forEach(el=>el.hidden=el.dataset.method!==sel.value)
@@ -297,7 +320,7 @@ document.querySelectorAll('.notification-bell,.profile-menu').forEach(menu=>menu
   ));
   links.push({href:'dashboard.php#website-visits',label:'Website visits / Visitas'});
   const aliases = {
-    appearance: 'theme colors typography fonts banner header navigation menu design preview video', settings: 'logo favicon whatsapp maintenance contact social branding', media: 'images videos files documents upload library', 'website-media': 'all public images website photos banner logo hero about services gallery posters replace change', gallery: 'projects photos images portfolio zoom', content: 'text titles paragraphs landing copy editor publish draft', users: 'accounts team staff administrators login', roles: 'permissions access security roles', estimates: 'requests quotes customers leads follow up search delete', email: 'smtp graph messages mail', dashboard: 'visits traffic analytics daily weekly monthly contador estadisticas',
+    appearance: 'theme colors typography fonts banner header navigation menu design preview video', settings: 'logo favicon whatsapp maintenance contact social branding', media: 'images videos files documents upload library order', 'website-media': 'all public images website photos banner logo hero about services gallery posters replace change', 'flexible-content': 'additional content unlimited cards blocks images text order private preview', gallery: 'projects photos images portfolio zoom', content: 'text titles paragraphs landing copy editor publish draft', users: 'accounts team staff administrators login', roles: 'permissions access security roles', estimates: 'requests quotes customers leads follow up search delete', email: 'smtp graph messages mail', dashboard: 'visits traffic analytics daily weekly monthly contador estadisticas',
   }
   ; const render = (query = '') => {
     const term = query.trim().toLowerCase(); const matches = links.filter((item) => {

@@ -3,6 +3,12 @@ require __DIR__.'/bootstrap.php';
 require_permission('media.manage');
 $pdo=db();
 $error='';
+$mediaHasOrder=false;
+try {
+    $mediaHasOrder=(bool)$pdo->query("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='media_library' AND COLUMN_NAME='sort_order'")->fetchColumn();
+} catch(Throwable $ignored) {
+    $mediaHasOrder=false;
+}
 try {
     $pdo->exec("INSERT IGNORE INTO media_library(title,file_path,mime_type,file_size,uploaded_by) SELECT title,image_path,NULL,0,NULL FROM gallery WHERE image_path IS NOT NULL AND image_path<>''");
 } catch(Throwable $e) {
@@ -14,9 +20,10 @@ if($_SERVER['REQUEST_METHOD']==='POST') {
         if($a==='upload') {
             $files=normalized_files('media_files');
             if(!$files)throw new RuntimeException('Choose at least one media file.');
-            foreach(array_slice($files,0,12) as $f) {
+            $baseOrder=(int)($_POST['sort_order']??0);
+            foreach(array_slice($files,0,12) as $index=>$f) {
                 $p=upload_media_file($f,'media','media',60);
-                media_add($p,pathinfo($f['name']??'',PATHINFO_FILENAME));
+                media_add($p,pathinfo($f['name']??'',PATHINFO_FILENAME),$baseOrder+($index*10));
             }
             log_activity('media_upload','Uploaded media files');
             flash('success','Media added to the Media Library.');
@@ -25,6 +32,12 @@ if($_SERVER['REQUEST_METHOD']==='POST') {
             $pdo->prepare('DELETE FROM media_library WHERE id=?')->execute([$id]);
             log_activity('media_delete','Removed media library item',['id'=>$id]);
             flash('success','Media item removed.');
+        } elseif($a==='order'&&$mediaHasOrder) {
+            $id=(int)($_POST['id']??0);
+            $sortOrder=(int)($_POST['sort_order']??0);
+            $pdo->prepare('UPDATE media_library SET sort_order=? WHERE id=?')->execute([$sortOrder,$id]);
+            log_activity('media_order','Updated Media Library order',['id'=>$id,'sort_order'=>$sortOrder]);
+            flash('success','Media order updated.');
         }
         header('Location: media.php');
         exit;
@@ -34,12 +47,13 @@ if($_SERVER['REQUEST_METHOD']==='POST') {
 }
 $q=trim((string)($_GET['q']??''));
 if($q!=='') {
-    $st=$pdo->prepare('SELECT * FROM media_library WHERE title LIKE ? OR file_path LIKE ? OR mime_type LIKE ? ORDER BY id DESC');
+    $st=$pdo->prepare('SELECT * FROM media_library WHERE title LIKE ? OR file_path LIKE ? OR mime_type LIKE ? ORDER BY '.($mediaHasOrder?'sort_order,id':'id DESC'));
     $st->execute(['%'.$q.'%','%'.$q.'%','%'.$q.'%']);
     $rows=$st->fetchAll();
 } else {
-    $rows=$pdo->query('SELECT * FROM media_library ORDER BY id DESC')->fetchAll();
+    $rows=$pdo->query('SELECT * FROM media_library ORDER BY '.($mediaHasOrder?'sort_order,id':'id DESC'))->fetchAll();
 }
+$nextMediaOrder=$mediaHasOrder?(int)$pdo->query('SELECT COALESCE(MAX(sort_order),0)+10 FROM media_library')->fetchColumn():10;
 $pageTitle='Media Library';
 $active='media';
 require __DIR__.'/_header.php';
@@ -70,6 +84,12 @@ endif;
 <input type="hidden" name="csrf" value="<?=h(csrf_token())?>
 ">
 <input type="hidden" name="action" value="upload">
+<?php if($mediaHasOrder): ?>
+<label class="media-upload-order">Starting display order
+<input type="number" name="sort_order" value="<?=h((string)$nextMediaOrder)?>">
+<small>When several files are uploaded together, the CMS assigns consecutive values in steps of 10.</small>
+</label>
+<?php endif; ?>
 <div class="upload-zone large" data-upload-zone tabindex="0">
 <div class="upload-icon">＋</div>
 <strong>Add media to the library</strong>
@@ -128,6 +148,15 @@ endif;
 <code><?=h($path)?>
 </code>
 </div>
+<?php if($mediaHasOrder): ?>
+<form method="post" class="media-order-form">
+<input type="hidden" name="csrf" value="<?=h(csrf_token())?>">
+<input type="hidden" name="action" value="order">
+<input type="hidden" name="id" value="<?=$r['id']?>">
+<label>Order<input type="number" name="sort_order" value="<?=h((string)($r['sort_order']??0))?>"></label>
+<button class="button secondary small">Save order</button>
+</form>
+<?php endif; ?>
 <form method="post" data-swal-confirm="Remove this media item?" data-swal-text="The library record will be removed. The file is kept to avoid breaking pages that may use it.">
 <input type="hidden" name="csrf" value="<?=h(csrf_token())?>
 ">

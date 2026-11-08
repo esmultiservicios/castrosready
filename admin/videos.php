@@ -75,6 +75,7 @@ if($_SERVER['REQUEST_METHOD']==='POST') {
                     $ext=strtolower(pathinfo($uploaded,PATHINFO_EXTENSION));
                     if(!in_array($ext,['mp4','webm','mov'],true)) throw new RuntimeException('Uploaded video must be MP4, WEBM or MOV.');
                     $filePath=$uploaded;
+                    media_add($filePath,$title?:'Website video',$sort);
                 }
                 if($filePath==='') throw new RuntimeException('Choose an MP4, WEBM or MOV video file.');
             } else {
@@ -83,7 +84,10 @@ if($_SERVER['REQUEST_METHOD']==='POST') {
             }
 
             if(isset($_POST['remove_poster'])) $posterPath='';
-            if(!empty($_FILES['poster']['name'])) $posterPath=upload_image($_FILES['poster'],'videos','video-poster',8);
+            if(!empty($_FILES['poster']['name'])) {
+                $posterPath=upload_image($_FILES['poster'],'videos','video-poster',8);
+                media_add($posterPath,($title?:'Website video').' cover',$sort);
+            }
 
             if($id) {
                 $pdo->prepare('UPDATE videos SET title=?,description=?,video_type=?,video_url=?,file_path=?,poster_path=?,sort_order=?,active=? WHERE id=?')
@@ -153,7 +157,7 @@ $pageTitle='Videos'; $active='videos'; require __DIR__.'/_header.php';
                 <small>MP4, WEBM or MOV · MP4 is recommended for browser compatibility.</small>
             </div>
         </div>
-        <div class="upload-zone premium-media-zone" data-upload-zone>
+        <div class="upload-zone premium-media-zone full-width-upload" data-upload-zone>
             <input type="file" name="video_file" accept="video/mp4,video/webm,video/quicktime,.mp4,.webm,.mov" data-empty-label="Drop, paste or choose an MP4 / WEBM / MOV video">
             <div class="upload-icon" aria-hidden="true">🎬</div>
             <strong>Drop video here</strong>
@@ -170,7 +174,7 @@ $pageTitle='Videos'; $active='videos'; require __DIR__.'/_header.php';
         <?php endif; ?>
     </div>
 
-    <div class="video-poster-editor premium-poster-editor">
+    <div class="video-poster-editor premium-poster-editor <?=empty($edit['poster_path'])?'no-current-poster':''?>">
         <div class="poster-upload-column">
             <div class="field-heading">
                 <div>
@@ -178,7 +182,7 @@ $pageTitle='Videos'; $active='videos'; require __DIR__.'/_header.php';
                     <small>Optional, but recommended. It gives the video a professional cover before playback.</small>
                 </div>
             </div>
-            <div class="upload-zone premium-media-zone" data-upload-zone>
+            <div class="upload-zone premium-media-zone full-width-upload" data-upload-zone>
                 <input type="file" name="poster" accept="image/jpeg,image/png,image/webp" data-empty-label="Drop, paste or choose a cover image">
                 <div class="upload-icon" aria-hidden="true">▣</div>
                 <strong>Drop cover image here</strong>
@@ -196,8 +200,8 @@ $pageTitle='Videos'; $active='videos'; require __DIR__.'/_header.php';
             </div>
         <?php endif; ?>
     </div>
-    <label class="check-row status-switch"><input type="checkbox" name="active" <?=!$edit||!empty($edit['active'])?'checked':''?>> Publish on website</label>
-    <div class="form-actions"><button>Save video</button><?php if($edit): ?><a class="button secondary" href="videos.php">Cancel</a><?php endif; ?></div>
+    <label class="check-row status-switch"><input type="checkbox" name="active" <?=!empty($edit['active'])?'checked':''?>> Publish on website</label>
+    <div class="form-actions"><button>Save video</button><a class="button secondary" href="../?preview=1#videos" target="_blank" rel="noopener">Private preview</a><?php if($edit): ?><a class="button secondary" href="videos.php">Cancel</a><?php endif; ?></div>
 </form>
 </section>
 

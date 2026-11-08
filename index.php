@@ -21,7 +21,7 @@ try {
     $content=site_content();
     $settings=settings();
     $services=db()->query('SELECT * FROM services WHERE active=1 ORDER BY sort_order,id')->fetchAll();
-    $gallery=db()->query("SELECT * FROM gallery WHERE active=1 AND image_path IS NOT NULL AND image_path<>'' ORDER BY sort_order,id")->fetchAll();
+    $gallery=db()->query("SELECT * FROM gallery WHERE active=1 ORDER BY sort_order,id")->fetchAll();
     $videos=[];
     try { $videos=db()->query('SELECT * FROM videos WHERE active=1 ORDER BY sort_order,id')->fetchAll(); } catch(Throwable $ignored) { $videos=[]; }
     $aboutArtworks=[];
@@ -87,6 +87,21 @@ if($draftPreview) {
     $draft=draft_content();
     if($draft)$content=array_replace($content,$draft);
 }
+$adminPreview=$adminSessionIsCurrent&&($_GET['preview']??'')==='1';
+$flexibleBlocks=[];
+if($adminPreview) {
+    $services=db()->query('SELECT * FROM services ORDER BY sort_order,id')->fetchAll();
+    $gallery=db()->query("SELECT * FROM gallery ORDER BY sort_order,id")->fetchAll();
+    try { $videos=db()->query('SELECT * FROM videos ORDER BY sort_order,id')->fetchAll(); } catch(Throwable $ignored) { $videos=[]; }
+    try { $aboutArtworks=db()->query('SELECT * FROM about_artworks ORDER BY sort_order,id')->fetchAll(); } catch(Throwable $ignored) { $aboutArtworks=[]; }
+    $areas=db()->query('SELECT * FROM service_areas ORDER BY sort_order,id')->fetchAll();
+    $tips=db()->query('SELECT * FROM tips ORDER BY sort_order,id')->fetchAll();
+}
+try {
+    $flexibleBlocks=db()->query('SELECT * FROM flexible_content_blocks'.($adminPreview?'':' WHERE active=1').' ORDER BY sort_order,id')->fetchAll();
+} catch(Throwable $ignored) {
+    $flexibleBlocks=[];
+}
 function c(string $k,string $f=''):string {
     global $content;
     return $content[$k]??$f;
@@ -118,7 +133,6 @@ $aboutImagePosition=trim((string)($settings['about_image_position']??'center'));
 $turnstileSiteKey=PublicFormProtection::turnstileSiteKey();
 $favicon=$settings['favicon_path']??'assets/logo.jpg';
 $maintenance=($settings['maintenance_mode']??'0')==='1';
-$adminPreview=$adminSessionIsCurrent&&($_GET['preview']??'')==='1';
 if(!$adminPreview&&!$draftPreview)VisitTracker::record(db());
 $requestScheme=(!empty($_SERVER['HTTPS'])&&strtolower((string)$_SERVER['HTTPS'])!=='off')?'https':'http';
 $requestHost=preg_replace('/[^A-Za-z0-9.:-]/','',(string)($_SERVER['HTTP_HOST']??'castrosready.us'));
@@ -407,6 +421,7 @@ if($navPosition==='above_banner') {
 }
 ?>
 
+<?php if($adminPreview||$draftPreview): ?><div class="private-preview-bar"><strong>Private administrator preview</strong><span>Hidden content is visible only in this authenticated preview. Publishing has not been changed.</span><a href="admin/dashboard.php">Return to admin</a></div><?php endif; ?>
 <main>
 <?php
 if(section_enabled('home')):
@@ -604,7 +619,7 @@ if(section_enabled('gallery')):
 <a class="text-link" href="#estimate" data-scroll><?=h(c('gallery_cta','Start your project'))?> →</a>
 </div>
 <div class="gallery-grid reveal"><?php
-foreach($gallery as $i=>$g):$img=$g['image_path'];
+foreach($gallery as $i=>$g):$img=trim((string)($g['image_path']??''));if($img==='')$img=gallery_default_image((string)$g['title']);if($img==='')continue;
 ?>
 
 <article class="gallery-card g<?=($i%6)+1?>" style="background-image:url('<?=h($img)?>')">
@@ -689,6 +704,24 @@ if($serviceMapLabel==='') {
 <?php
 endif;
 ?>
+<?php if(section_enabled('custom_content')&&!empty($flexibleBlocks)): ?>
+<section class="section flexible-public-section section-anchor" id="custom-content" style="order:<?=section_order('custom_content')?>">
+<div class="container">
+<div class="section-head reveal">
+<div><span class="kicker"><?=h($settings['flexible_section_kicker']??"MORE FROM CASTRO'S READY")?></span><h2><?=h($settings['flexible_section_title']??'More projects, ideas and information.')?></h2></div>
+<p><?=h($settings['flexible_section_text']??'Explore additional content selected by our team.')?></p>
+</div>
+<div class="flexible-content-grid <?=count($flexibleBlocks)===1?'single-flexible-card':''?> reveal">
+<?php foreach($flexibleBlocks as $block): ?>
+<article class="flexible-content-card">
+<?php if(!empty($block['image_path'])): ?><img src="<?=h($block['image_path'])?>" alt="<?=h($block['image_alt']?:$block['title'])?>" loading="lazy"><?php endif; ?>
+<div class="flexible-content-copy"><h3><?=h($block['title'])?></h3><?php if(trim((string)$block['body'])!==''): ?><p><?=nl2br(h($block['body']))?></p><?php endif; ?><?php if(trim((string)$block['button_text'])!==''&&trim((string)$block['button_url'])!==''): ?><a class="text-link" href="<?=h($block['button_url'])?>"><?=h($block['button_text'])?> →</a><?php endif; ?></div>
+</article>
+<?php endforeach; ?>
+</div>
+</div>
+</section>
+<?php endif; ?>
 <?php
 if(section_enabled('tips')):
 ?>

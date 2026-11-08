@@ -427,9 +427,26 @@ CREATE TABLE IF NOT EXISTS media_library (
   file_path VARCHAR(500) NOT NULL,
   mime_type VARCHAR(100) NULL,
   file_size BIGINT UNSIGNED NOT NULL DEFAULT 0,
+  sort_order INT NOT NULL DEFAULT 0,
   uploaded_by INT UNSIGNED NULL,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (id), UNIQUE KEY uq_media_path (file_path), KEY idx_media_created (created_at)
+  PRIMARY KEY (id), UNIQUE KEY uq_media_path (file_path), KEY idx_media_order (sort_order,id), KEY idx_media_created (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS flexible_content_blocks (
+  id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  title VARCHAR(180) NOT NULL,
+  body TEXT NULL,
+  image_path VARCHAR(500) NULL,
+  image_alt VARCHAR(220) NULL,
+  button_text VARCHAR(100) NULL,
+  button_url VARCHAR(700) NULL,
+  sort_order INT NOT NULL DEFAULT 0,
+  active TINYINT(1) NOT NULL DEFAULT 0,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  KEY idx_flexible_content_active_order (active,sort_order,id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 CREATE TABLE IF NOT EXISTS activity_log (
   id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -649,5 +666,15 @@ INSERT IGNORE INTO admin_role_permissions(role_id,permission_id) SELECT r.id,p.i
 INSERT IGNORE INTO admin_role_permissions(role_id,permission_id) SELECT r.id,p.id FROM admin_roles r JOIN admin_permissions p ON p.permission_key='health.view' WHERE r.role_key='viewer';
 INSERT IGNORE INTO admin_role_permissions(role_id,permission_id) SELECT r.id,p.id FROM admin_roles r JOIN admin_permissions p ON p.permission_key='notifications.view' WHERE r.role_key='viewer';
 INSERT IGNORE INTO admin_role_permissions(role_id,permission_id) SELECT r.id,p.id FROM admin_roles r CROSS JOIN admin_permissions p WHERE r.role_key='owner';
+
+INSERT INTO site_sections(section_key,label,sort_order,active)
+VALUES ('custom_content','Additional content',75,1)
+ON DUPLICATE KEY UPDATE label=VALUES(label);
+
+INSERT INTO settings(setting_key,setting_value) VALUES
+('flexible_section_kicker','MORE FROM CASTRO''S READY'),
+('flexible_section_title','More projects, ideas and information.'),
+('flexible_section_text','Explore additional content selected by our team.')
+ON DUPLICATE KEY UPDATE setting_value=setting_value;
 
 SET FOREIGN_KEY_CHECKS=1;

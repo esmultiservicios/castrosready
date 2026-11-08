@@ -61,9 +61,10 @@ require __DIR__.'/_header.php';
 </label>
 </div>
 <label class="check-row status-switch">
-<input type="checkbox" name="active" <?=!$edit||!empty($edit['active'])?'checked':''?>
+<input type="checkbox" name="active" <?=!empty($edit['active'])?'checked':''?>
 > Publish</label>
 <div class="form-actions">
+<a class="button secondary" href="../?preview=1#tips" target="_blank" rel="noopener">Private preview</a>
 <button>Save tip</button><?php
 if($edit):
 ?>

@@ -31,7 +31,10 @@ $checks[]=['Service areas published',
 $areas>0,
 'Add at least one service area.',
 'areas.php'];
-$missing=(int)$pdo->query("SELECT COUNT(*) FROM gallery WHERE active=1 AND (image_path IS NULL OR image_path='')")->fetchColumn();
+$missing=0;
+foreach($pdo->query("SELECT title FROM gallery WHERE active=1 AND (image_path IS NULL OR image_path='')")->fetchAll() as $missingGalleryRow) {
+    if(gallery_default_image((string)$missingGalleryRow['title'])==='')$missing++;
+}
 $checks[]=['Gallery uses real images',
 $missing===0,
 $missing.' gallery item(s) still use fallback images.',

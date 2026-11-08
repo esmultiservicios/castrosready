@@ -336,6 +336,19 @@ function section_order(string $key,int $default=999): int {
     if($s===null)$s=site_sections();
     return isset($s[$key])?(int)$s[$key]['sort_order']:$default;
 }
+function gallery_default_image(string $title): string {
+    static $images=[
+        'Before & After'=>'https://images.unsplash.com/photo-1503387762-592deb58ef4e?auto=format&fit=crop&w=1100&q=85',
+        'Interior Painting'=>'https://images.unsplash.com/photo-1562259949-e8e7689d7828?auto=format&fit=crop&w=900&q=85',
+        'Exterior Painting'=>'https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?auto=format&fit=crop&w=900&q=85',
+        'Remodeling'=>'https://images.unsplash.com/photo-1581858726788-75bc0f6a952d?auto=format&fit=crop&w=900&q=85',
+        'Flooring'=>'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=900&q=85',
+        'Drywall Repair'=>'https://images.unsplash.com/photo-1590725121839-892b458a74fe?auto=format&fit=crop&w=900&q=85',
+        'Decks'=>'https://images.unsplash.com/photo-1590725121839-892b458a74fe?auto=format&fit=crop&w=900&q=85',
+        'Concrete'=>'https://images.unsplash.com/photo-1590725121839-892b458a74fe?auto=format&fit=crop&w=900&q=85',
+    ];
+    return $images[trim($title)]??'';
+}
 function log_activity(string $type,string $description,array $metadata=[]): void {
     try {
         $adminId=!empty($_SESSION['cr_admin_id'])?(int)$_SESSION['cr_admin_id']:null;
@@ -351,14 +364,19 @@ function admin_notify(string $type,string $title,string $message,string $url='')
     } catch(Throwable $e) {
     }
 }
-function media_add(string $path,string $title=''): void {
+function media_add(string $path,string $title='',int $sortOrder=0): void {
     try {
         $full=ROOT_DIR.'/'.$path;
         $mime=is_file($full)?detect_file_mime_type($full):'';
         $size=is_file($full)?filesize($full):0;
         $adminId=!empty($_SESSION['cr_admin_id'])?(int)$_SESSION['cr_admin_id']:null;
-        $st=db()->prepare('INSERT INTO media_library(title,file_path,mime_type,file_size,uploaded_by) VALUES(?,?,?,?,?)');
-        $st->execute([$title,$path,$mime,(int)$size,$adminId]);
+        try {
+            $st=db()->prepare('INSERT INTO media_library(title,file_path,mime_type,file_size,sort_order,uploaded_by) VALUES(?,?,?,?,?,?)');
+            $st->execute([$title,$path,$mime,(int)$size,$sortOrder,$adminId]);
+        } catch(Throwable $schemaFallback) {
+            $st=db()->prepare('INSERT INTO media_library(title,file_path,mime_type,file_size,uploaded_by) VALUES(?,?,?,?,?)');
+            $st->execute([$title,$path,$mime,(int)$size,$adminId]);
+        }
     } catch(Throwable $e) {
     }
 }

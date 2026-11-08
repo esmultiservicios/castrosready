@@ -9,7 +9,10 @@ $counts=['services'=>(int)$pdo->query('SELECT COUNT(*) FROM services WHERE activ
 'drafts'=>(int)$pdo->query('SELECT COUNT(*) FROM content_drafts')->fetchColumn(),
 'notifications'=>unread_notification_count(),
 'approvals'=>(int)$pdo->query("SELECT COUNT(*) FROM content_approvals WHERE status='pending'")->fetchColumn()];
-$missing=(int)$pdo->query("SELECT COUNT(*) FROM gallery WHERE active=1 AND (image_path IS NULL OR image_path='')")->fetchColumn();
+$missing=0;
+foreach($pdo->query("SELECT title FROM gallery WHERE active=1 AND (image_path IS NULL OR image_path='')")->fetchAll() as $missingGalleryRow) {
+    if(gallery_default_image((string)$missingGalleryRow['title'])==='')$missing++;
+}
 $emailOk=(int)$pdo->query('SELECT COUNT(*) FROM correo WHERE estado=1')->fetchColumn()>0;
 $areas=(int)$pdo->query('SELECT COUNT(*) FROM service_areas WHERE active=1')->fetchColumn();
 $visitStats=['today'=>0,'week'=>0,'month'=>0,'unique_today'=>0,'unique_week'=>0,'unique_month'=>0];
@@ -41,20 +44,20 @@ $stats=[];
 if(user_can('services.manage'))$stats[]=['Active services',
 $counts['services'],
 'Published',
-'services.php'];
+'services.php','tools','teal'];
 if(user_can('gallery.manage'))$stats[]=['Gallery items',
 $counts['gallery'],
 'Project images',
-'gallery.php'];
+'gallery.php','image','blue'];
 if(user_can('estimates.view'))$stats[]=['New estimates',
 $counts['new'],
 'Need attention',
-'estimates.php'];
+'estimates.php','mail','gold'];
 $stats[]=['Notifications',
 $counts['notifications'],
 'Unread alerts',
-'notifications.php'];
-$stats[]=['Visits today',(int)$visitStats['today'],'Public page views','dashboard.php#website-visits'];
+'notifications.php','bell','violet'];
+$stats[]=['Visits today',(int)$visitStats['today'],'Public page views','dashboard.php#website-visits','eye','coral'];
 $attention=[];
 if(user_can('estimates.view'))$attention[]=['Follow-ups due',
 $due,
@@ -83,6 +86,7 @@ $emailOk?'Email delivery is configured.':'Configure SMTP or Microsoft Graph.',
 'mail'];
 $cards=[['content.view','content.php','edit','Visual content editor','Draft, preview, approval and publishing.'],
 ['content.view','website-media.php','image','Website images','Find and replace every image used on the public website.'],
+['content.view','flexible-content.php','edit','Additional content','Add unlimited ordered image and text blocks with private preview.'],
 ['settings.manage','appearance.php','eye','Appearance','Typography, banner, navigation and visual presets.'],
 ['sections.manage','sections.php','dashboard','Section manager','Show, hide and reorder landing page sections.'],
 ['media.manage','media.php','image','Media Library','Upload, search, preview and reuse images.'],
@@ -124,15 +128,11 @@ Preview site</a>
 <div class="stat-grid"><?php
 foreach($stats as $s):
 ?>
-<a class="stat animate-in" href="<?=$s[3]?>
+<a class="stat dashboard-stat tone-<?=h($s[5])?> animate-in" href="<?=$s[3]?>
 ">
-<span><?=h($s[0])?>
-</span>
-<strong data-stat="<?=$s[1]?>
-"><?=$s[1]?>
-</strong>
-<small><?=h($s[2])?>
-</small>
+<span class="dashboard-stat-icon"><?=icon($s[4])?></span>
+<div><span><?=h($s[0])?></span><strong data-stat="<?=$s[1]?>"><?=$s[1]?></strong><small><?=h($s[2])?></small></div>
+<i>→</i>
 </a><?php
 endforeach;
 ?>
@@ -147,14 +147,13 @@ endforeach;
     </div>
     <div class="traffic-grid">
         <?php foreach([
-            ['Today',(int)$visitStats['today'],(int)$visitStats['unique_today']],
-            ['Last 7 days',(int)$visitStats['week'],(int)$visitStats['unique_week']],
-            ['This month',(int)$visitStats['month'],(int)$visitStats['unique_month']]
+            ['Today',(int)$visitStats['today'],(int)$visitStats['unique_today'],'eye','teal'],
+            ['Last 7 days',(int)$visitStats['week'],(int)$visitStats['unique_week'],'dashboard','blue'],
+            ['This month',(int)$visitStats['month'],(int)$visitStats['unique_month'],'dashboard','violet']
         ] as $traffic): ?>
-        <article class="traffic-card animate-in">
-            <span><?=h($traffic[0])?></span>
-            <strong data-stat="<?=$traffic[1]?>"><?=$traffic[1]?></strong>
-            <small><?=$traffic[2]?> unique visitor<?=$traffic[2]===1?'':'s'?></small>
+        <article class="traffic-card premium-traffic-card tone-<?=h($traffic[4])?> animate-in">
+            <span class="traffic-icon"><?=icon($traffic[3])?></span>
+            <div><span><?=h($traffic[0])?></span><strong data-stat="<?=$traffic[1]?>"><?=$traffic[1]?></strong><small><?=$traffic[2]?> unique visitor<?=$traffic[2]===1?'':'s'?></small></div>
         </article>
         <?php endforeach; ?>
     </div>

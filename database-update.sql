@@ -109,6 +109,15 @@ INSERT INTO settings(setting_key,setting_value) VALUES
 ('estimate_copy_email','')
 ON DUPLICATE KEY UPDATE setting_value=setting_value;
 
+-- Restore the original gallery previews only when those records are still empty.
+-- Custom images are never overwritten.
+UPDATE gallery SET image_path='https://images.unsplash.com/photo-1503387762-592deb58ef4e?auto=format&fit=crop&w=1100&q=85' WHERE title='Before & After' AND (image_path IS NULL OR image_path='');
+UPDATE gallery SET image_path='https://images.unsplash.com/photo-1562259949-e8e7689d7828?auto=format&fit=crop&w=900&q=85' WHERE title='Interior Painting' AND (image_path IS NULL OR image_path='');
+UPDATE gallery SET image_path='https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?auto=format&fit=crop&w=900&q=85' WHERE title='Exterior Painting' AND (image_path IS NULL OR image_path='');
+UPDATE gallery SET image_path='https://images.unsplash.com/photo-1581858726788-75bc0f6a952d?auto=format&fit=crop&w=900&q=85' WHERE title='Remodeling' AND (image_path IS NULL OR image_path='');
+UPDATE gallery SET image_path='https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=900&q=85' WHERE title='Flooring' AND (image_path IS NULL OR image_path='');
+UPDATE gallery SET image_path='https://images.unsplash.com/photo-1590725121839-892b458a74fe?auto=format&fit=crop&w=900&q=85' WHERE title IN ('Drywall Repair','Decks','Concrete') AND (image_path IS NULL OR image_path='');
+
 CREATE TABLE IF NOT EXISTS content_drafts (
   content_key VARCHAR(100) NOT NULL,
   content_value TEXT NULL,
@@ -796,4 +805,59 @@ UPDATE gallery SET image_path='https://images.unsplash.com/photo-1600585154340-b
 UPDATE gallery SET image_path='https://images.unsplash.com/photo-1590725121839-892b458a74fe?auto=format&fit=crop&w=900&q=85' WHERE @cr_apply_public_media_20261023=1 AND title IN ('Drywall Repair','Decks','Concrete') AND (image_path IS NULL OR image_path='');
 
 INSERT INTO settings(setting_key,setting_value) VALUES ('public_media_admin_20261023','1')
+ON DUPLICATE KEY UPDATE setting_value=setting_value;
+
+
+-- ============================================================
+-- FLEXIBLE PUBLIC CONTENT + MEDIA LIBRARY ORDER
+-- Safe to re-run. Adds unlimited ordered image/content cards.
+-- ============================================================
+SET @cr_sql = IF(
+  EXISTS(
+    SELECT 1 FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='media_library' AND COLUMN_NAME='sort_order'
+  ),
+  'SELECT 1',
+  'ALTER TABLE media_library ADD COLUMN sort_order INT NOT NULL DEFAULT 0 AFTER file_size'
+);
+PREPARE cr_stmt FROM @cr_sql;
+EXECUTE cr_stmt;
+DEALLOCATE PREPARE cr_stmt;
+
+SET @cr_sql = IF(
+  EXISTS(
+    SELECT 1 FROM information_schema.STATISTICS
+    WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='media_library' AND INDEX_NAME='idx_media_order'
+  ),
+  'SELECT 1',
+  'ALTER TABLE media_library ADD INDEX idx_media_order (sort_order,id)'
+);
+PREPARE cr_stmt FROM @cr_sql;
+EXECUTE cr_stmt;
+DEALLOCATE PREPARE cr_stmt;
+
+CREATE TABLE IF NOT EXISTS flexible_content_blocks (
+  id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  title VARCHAR(180) NOT NULL,
+  body TEXT NULL,
+  image_path VARCHAR(500) NULL,
+  image_alt VARCHAR(220) NULL,
+  button_text VARCHAR(100) NULL,
+  button_url VARCHAR(700) NULL,
+  sort_order INT NOT NULL DEFAULT 0,
+  active TINYINT(1) NOT NULL DEFAULT 0,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  KEY idx_flexible_content_active_order (active,sort_order,id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+INSERT INTO site_sections(section_key,label,sort_order,active)
+VALUES ('custom_content','Additional content',75,1)
+ON DUPLICATE KEY UPDATE label=VALUES(label);
+
+INSERT INTO settings(setting_key,setting_value) VALUES
+('flexible_section_kicker','MORE FROM CASTRO''S READY'),
+('flexible_section_title','More projects, ideas and information.'),
+('flexible_section_text','Explore additional content selected by our team.')
 ON DUPLICATE KEY UPDATE setting_value=setting_value;

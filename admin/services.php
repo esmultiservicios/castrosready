@@ -19,6 +19,7 @@ if($_SERVER['REQUEST_METHOD']==='POST') {
             if(isset($_POST['remove_icon'])) $iconPath='';
             if(!empty($_FILES['icon']['name'])) {
                 $iconPath=upload_image($_FILES['icon'],'service-icons','service-icon',8);
+                media_add($iconPath,$title?:'Service image',$sort);
             }
 
             if($title==='') throw new RuntimeException('Service title is required.');
@@ -84,11 +85,19 @@ require __DIR__.'/_header.php';
             <textarea name="details" required><?=h($edit['details']??'')?></textarea>
         </label>
 
-        <div class="service-icon-editor">
-            <div>
+        <div class="service-icon-editor <?=empty($edit['icon_path'])?'no-current-service-icon':''?>">
+            <div class="service-icon-upload-column">
                 <strong>Service badge / icon</strong>
                 <p class="muted">Upload any approved JPG, PNG or WEBP. This is not limited to the current eight services.</p>
-                <input type="file" name="icon" accept="image/jpeg,image/png,image/webp">
+                <div class="upload-zone premium-media-zone full-width-upload" data-upload-zone tabindex="0">
+                    <input type="file" name="icon" accept="image/jpeg,image/png,image/webp" data-empty-label="Drop, paste or choose a service image">
+                    <div class="upload-icon" aria-hidden="true">＋</div>
+                    <strong>Drop service image here</strong>
+                    <small>Drag & drop, paste from clipboard, or select JPG, PNG or WEBP.</small>
+                    <span class="upload-zone-action">Choose image</span>
+                    <div class="upload-selection-name" data-upload-name>Drop, paste or choose a service image</div>
+                    <div class="upload-preview premium-upload-preview" data-upload-preview></div>
+                </div>
             </div>
             <?php if(!empty($edit['icon_path'])): ?>
                 <div class="service-icon-current">
@@ -99,10 +108,11 @@ require __DIR__.'/_header.php';
         </div>
 
         <label class="check-row status-switch">
-            <input type="checkbox" name="active" <?=!$edit||!empty($edit['active'])?'checked':''?>> Publish on website
+            <input type="checkbox" name="active" <?=!empty($edit['active'])?'checked':''?>> Publish on website
         </label>
         <div class="form-actions">
             <button>Save service</button>
+            <a class="button secondary" href="../?preview=1#services" target="_blank" rel="noopener">Private preview</a>
             <?php if($edit): ?><a class="button secondary" href="services.php">Cancel</a><?php endif; ?>
         </div>
     </form>

@@ -13,9 +13,10 @@ if($_SERVER['REQUEST_METHOD']==='POST') {
             $sort=(int)($_POST['sort_order']??0);
             $active=isset($_POST['active'])?1:0;
             $path=trim((string)($_POST['existing_image']??''));
+            if($path==='')$path=gallery_default_image($title);
             if(!empty($_FILES['image']['name'])) {
                 $path=upload_image($_FILES['image'],'gallery','project',8);
-                media_add($path,$title?:'Gallery image');
+                media_add($path,$title?:'Gallery image',$sort);
             } elseif(!empty($_POST['media_path'])) {
                 $path=trim((string)$_POST['media_path']);
                 $libraryCheck=$pdo->prepare("SELECT COUNT(*) FROM media_library WHERE file_path=? AND mime_type LIKE 'image/%'");
@@ -69,7 +70,7 @@ endif;
 <input type="hidden" name="action" value="save">
 <input type="hidden" name="id" value="<?=h((string)($edit['id']??0))?>
 ">
-<input type="hidden" name="existing_image" value="<?=h($edit['image_path']??'')?>
+<input type="hidden" name="existing_image" value="<?=h(trim((string)($edit['image_path']??''))!==''?$edit['image_path']:gallery_default_image((string)($edit['title']??'')))?>
 ">
 <div class="two-col">
 <label>Title<input name="title" required value="<?=h($edit['title']??'')?>
@@ -99,8 +100,10 @@ endforeach;
 <div class="upload-preview" data-upload-preview>
 </div>
 </div><?php
-if($edit&&$edit['image_path']):
-$editImageUrl=preg_match('~^https?://~i',(string)$edit['image_path'])?$edit['image_path']:'../'.$edit['image_path'];
+$editStoredImage=$edit?trim((string)($edit['image_path']??'')):'';
+if($editStoredImage===''&&$edit)$editStoredImage=gallery_default_image((string)$edit['title']);
+if($edit&&$editStoredImage!==''):
+$editImageUrl=preg_match('~^https?://~i',$editStoredImage)?$editStoredImage:'../'.$editStoredImage;
 ?>
 <button type="button" class="button secondary small" data-preview-src="<?=h($editImageUrl)?>
 " data-preview-caption="<?=h($edit['title'])?>
@@ -108,7 +111,7 @@ $editImageUrl=preg_match('~^https?://~i',(string)$edit['image_path'])?$edit['ima
 endif;
 ?>
 <label class="premium-switch">
-<input type="checkbox" name="active" <?=!$edit||!empty($edit['active'])?'checked':''?>
+<input type="checkbox" name="active" <?=!empty($edit['active'])?'checked':''?>
 >
 <span class="switch-ui" aria-hidden="true">
 </span>
@@ -118,6 +121,7 @@ endif;
 </span>
 </label>
 <div class="form-actions">
+<a class="button secondary" href="../?preview=1#gallery" target="_blank" rel="noopener">Private preview</a>
 <button>Save gallery item</button><?php
 if($edit):
 ?>
@@ -130,7 +134,9 @@ endif;
 <div class="gallery-editor"><?php
 foreach($rows as $i=>$r):
 $displayImage='';
-if($r['image_path'])$displayImage=preg_match('~^https?://~i',(string)$r['image_path'])?$r['image_path']:'../'.$r['image_path'];
+$storedImage=trim((string)($r['image_path']??''));
+if($storedImage==='')$storedImage=gallery_default_image((string)$r['title']);
+if($storedImage!=='')$displayImage=preg_match('~^https?://~i',$storedImage)?$storedImage:'../'.$storedImage;
 ?>
 <article class="gallery-item animate-in">
 <div class="gallery-media">
