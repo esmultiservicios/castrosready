@@ -619,3 +619,41 @@ document.querySelectorAll('.notification-bell,.profile-menu').forEach(menu=>menu
 
   selectSection(activeKey, false);
 })();
+
+// Expand every admin grid when it contains only one visible card/item.
+(() => {
+  const root = document.querySelector('.admin-main');
+  if (!root) return;
+
+  let scheduled = false;
+  const refreshSingleItemGrids = () => {
+    scheduled = false;
+    root.querySelectorAll('[class*="grid"], .editor-layout, .role-list').forEach(grid => {
+      if (window.getComputedStyle(grid).display !== 'grid') return;
+
+      const children = [...grid.children];
+      const visibleChildren = children.filter(child => {
+        return !child.hidden && window.getComputedStyle(child).display !== 'none';
+      });
+
+      children.forEach(child => child.classList.remove('single-grid-item'));
+      grid.classList.toggle('single-item-grid', visibleChildren.length === 1);
+      if (visibleChildren.length === 1) visibleChildren[0].classList.add('single-grid-item');
+    });
+  };
+
+  const scheduleRefresh = () => {
+    if (scheduled) return;
+    scheduled = true;
+    window.requestAnimationFrame(refreshSingleItemGrids);
+  };
+
+  refreshSingleItemGrids();
+  window.addEventListener('resize', scheduleRefresh);
+  new MutationObserver(scheduleRefresh).observe(root, {
+    subtree: true,
+    childList: true,
+    attributes: true,
+    attributeFilter: ['hidden', 'style']
+  });
+})();
