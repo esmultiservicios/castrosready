@@ -95,7 +95,7 @@ foreach($runtimeRequirements as $requirement):
 <div>
 <strong><?=h($requirement['name'])?> · <?=$requirement['available']?'Available':'Missing'?></strong>
 <p><?=h($requirement['purpose'])?></p>
-<small><?=h($requirement['available']?'Detected in PHP '.PHP_VERSION.'.':$requirement['install'])?></small>
+<small><?=h($requirement['available']?($requirement['detail']??'Detected in PHP '.PHP_VERSION.'.'):$requirement['install'])?></small>
 </div>
 </article><?php
 endforeach;

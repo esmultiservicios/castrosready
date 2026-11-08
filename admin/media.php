@@ -73,8 +73,8 @@ endif;
 <div class="upload-zone large" data-upload-zone tabindex="0">
 <div class="upload-icon">＋</div>
 <strong>Add media to the library</strong>
-<small data-upload-name>Drag & drop, paste images, or choose up to 12 files · JPG, PNG, WEBP, MP4, WEBM, PDF</small>
-<input type="file" name="media_files[]" accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,application/pdf" multiple>
+<small data-upload-name>Drag & drop, paste images, or choose up to 12 files · JPG, PNG, WEBP, MP4, WEBM, MOV, PDF</small>
+<input type="file" name="media_files[]" accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime,application/pdf,.mov" multiple>
 <div class="upload-preview" data-upload-preview>
 </div>
 </div>
@@ -86,7 +86,7 @@ endif;
 <div class="media-grid"><?php
 foreach($rows as $r):$mime=(string)($r['mime_type']??'');
 $path=(string)$r['file_path'];
-$isVideo=str_starts_with($mime,'video/')||preg_match('/\.(mp4|webm)$/i',$path);
+$isVideo=str_starts_with($mime,'video/')||preg_match('/\.(mp4|webm|mov)$/i',$path);
 $isPdf=$mime==='application/pdf'||preg_match('/\.pdf$/i',$path);
 ?>
 <article class="media-card animate-in">

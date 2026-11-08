@@ -191,12 +191,18 @@ img {
 .hero-visual {
     min-height:610px;
     border-radius:32px;
-    background-image:url('https://images.unsplash.com/photo-1504307651254-35680f356dfd?auto=format&fit=crop&w=1200&q=88');
-    background-size:cover;
-    background-position:center;
+    background:var(--teal-dark);
     position:relative;
     overflow:hidden;
     box-shadow:var(--shadow)
+}
+.section-cover-image {
+    position:absolute;
+    inset:0;
+    width:100%;
+    height:100%;
+    object-fit:cover;
+    display:block
 }
 .hero-badge {
     position:absolute;
@@ -210,7 +216,8 @@ img {
     display:flex;
     justify-content:space-between;
     gap:24px;
-    align-items:center
+    align-items:center;
+    z-index:2
 }
 .hero-badge strong {
     font:700 18px 'Manrope',sans-serif
@@ -265,7 +272,8 @@ img {
 }
 .photo-main {
     inset:0 80px 0 0;
-    background-image:url('https://images.unsplash.com/photo-1531835551805-16d864c8d311?auto=format&fit=crop&w=1100&q=85')
+    background:var(--teal-dark);
+    overflow:hidden
 }
 .photo-note {
     position:absolute;
@@ -436,28 +444,16 @@ img {
 }
 .g1 {
     grid-column:span 7;
-    grid-row:span 2;
-    background-image:url('https://images.unsplash.com/photo-1503387762-592deb58ef4e?auto=format&fit=crop&w=1100&q=85')
+    grid-row:span 2
 }
 .g2 {
-    grid-column:span 5;
-    background-image:url('https://images.unsplash.com/photo-1562259949-e8e7689d7828?auto=format&fit=crop&w=900&q=85')
+    grid-column:span 5
 }
 .g3 {
-    grid-column:span 5;
-    background-image:url('https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?auto=format&fit=crop&w=900&q=85')
+    grid-column:span 5
 }
 .g4,.g5,.g6 {
     grid-column:span 4
-}
-.g4 {
-    background-image:url('https://images.unsplash.com/photo-1581858726788-75bc0f6a952d?auto=format&fit=crop&w=800&q=85')
-}
-.g5 {
-    background-image:url('https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=800&q=85')
-}
-.g6 {
-    background-image:url('https://images.unsplash.com/photo-1590725121839-892b458a74fe?auto=format&fit=crop&w=800&q=85')
 }
 .areas-section {
     background:#fff
@@ -995,7 +991,12 @@ footer {
     cursor:pointer
 }
 .gallery-card {
-    position:relative
+    position:relative;
+    cursor:zoom-in
+}
+.gallery-card:focus-visible {
+    outline:3px solid #f2d45c;
+    outline-offset:4px
 }
 .gallery-zoom {
     position:absolute;
@@ -1005,7 +1006,7 @@ footer {
     height:40px;
     border-radius:12px;
     border:1px solid rgba(255,255,255,.62);
-    background:rgba(255,255,255,.94);
+    background:#f2d45c;
     color:#103c39;
     font-size:22px;
     cursor:pointer;
@@ -1021,7 +1022,7 @@ footer {
 .site-lightbox {
     position:fixed;
     inset:0;
-    z-index:90;
+    z-index:9999;
     background:rgba(10,22,21,.88);
     display:none;
     align-items:center;
@@ -1033,15 +1034,23 @@ footer {
 }
 .site-lightbox figure {
     margin:0;
-    max-width:min(1100px,96vw);
-    text-align:center
+    width:min(1180px,96vw);
+    height:min(88vh,900px);
+    text-align:center;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center
 }
 .site-lightbox img {
+    display:block;
     max-width:100%;
-    max-height:82vh;
+    max-height:calc(88vh - 54px);
+    width:auto;
+    height:auto;
     border-radius:16px;
     object-fit:contain;
-    background:#fff
+    background:#142f2d
 }
 .site-lightbox figcaption {
     color:#fff;
@@ -1056,10 +1065,13 @@ footer {
     height:46px;
     border:0;
     border-radius:50%;
-    background:#fff;
+    background:#f2d45c;
     color:#103c39;
     font-size:28px;
     cursor:pointer
+}
+body.lightbox-open {
+    overflow:hidden
 }
 .floating-whatsapp {
     position:fixed;
@@ -1275,7 +1287,7 @@ footer {
     border-color:#0f7777!important
 }
 .public-upload-item button:hover,.gallery-zoom:hover,.site-lightbox>button:hover {
-    background:#0b5f60!important
+    background:#0b5f60!important;
 }
 .floating-whatsapp {
     background:#103c39!important;

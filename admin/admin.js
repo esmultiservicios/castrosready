@@ -294,8 +294,10 @@ document.querySelectorAll('.notification-bell,.profile-menu').forEach(menu=>menu
   const links = [...document.querySelectorAll('.admin-sidebar a[href]')].map((link) => ( {
     href: link.getAttribute('href'), label: (link.textContent || '').replace(/\s+/g, ' ').trim(),
   }
-  )); const aliases = {
-    appearance: 'theme colors typography fonts banner header navigation menu design', settings: 'logo favicon whatsapp maintenance contact social branding', media: 'images videos files documents upload library', gallery: 'projects photos images portfolio', content: 'text titles paragraphs landing copy editor publish draft', users: 'accounts team staff administrators login', roles: 'permissions access security roles', estimates: 'requests quotes customers leads follow up', email: 'smtp graph messages mail',
+  ));
+  links.push({href:'dashboard.php#website-visits',label:'Website visits / Visitas'});
+  const aliases = {
+    appearance: 'theme colors typography fonts banner header navigation menu design preview video', settings: 'logo favicon whatsapp maintenance contact social branding', media: 'images videos files documents upload library', 'website-media': 'all public images website photos banner logo hero about services gallery posters replace change', gallery: 'projects photos images portfolio zoom', content: 'text titles paragraphs landing copy editor publish draft', users: 'accounts team staff administrators login', roles: 'permissions access security roles', estimates: 'requests quotes customers leads follow up search delete', email: 'smtp graph messages mail', dashboard: 'visits traffic analytics daily weekly monthly contador estadisticas',
   }
   ; const render = (query = '') => {
     const term = query.trim().toLowerCase(); const matches = links.filter((item) => {
@@ -372,6 +374,118 @@ document.querySelectorAll('.notification-bell,.profile-menu').forEach(menu=>menu
 }
 )();
 
+// SEO fields and search-result preview stay synchronized before saving.
+(() => {
+  const form=document.querySelector('[data-seo-form]');
+  if(!form)return;
+  const title=form.querySelector('[data-seo-title]');
+  const description=form.querySelector('[data-seo-description]');
+  const titleCount=document.querySelector('[data-seo-title-count]');
+  const descriptionCount=document.querySelector('[data-seo-description-count]');
+  const previewTitle=document.querySelector('[data-seo-preview-title]');
+  const previewDescription=document.querySelector('[data-seo-preview-description]');
+  const previewDomain=document.querySelector('[data-seo-preview-domain]');
+  const canonical=form.querySelector('[name="seo_canonical_url"]');
+  const update=()=> {
+    if(titleCount)titleCount.textContent=String(title?.value.length||0);
+    if(descriptionCount)descriptionCount.textContent=String(description?.value.length||0);
+    if(previewTitle)previewTitle.textContent=title?.value||'Website title';
+    if(previewDescription)previewDescription.textContent=description?.value||'Website description';
+    if(previewDomain&&canonical?.value) {
+      try { previewDomain.textContent=new URL(canonical.value).hostname; } catch(error) {}
+    }
+  };
+  [title,description,canonical].forEach(field=>field?.addEventListener('input',update));
+  update();
+})();
+
+// Banner preview uses unsaved form values and never publishes them automatically.
+(() => {
+  const form=document.querySelector('[data-banner-form]');
+  const preview=document.querySelector('[data-banner-live-preview]');
+  if(!form||!preview)return;
+  const stage=preview.querySelector('[data-banner-preview-stage]');
+  const image=preview.querySelector('[data-banner-preview-image]');
+  const video=preview.querySelector('[data-banner-preview-video]');
+  const embed=preview.querySelector('[data-banner-preview-embed]');
+  const nav=preview.querySelector('[data-banner-preview-nav]');
+  let imageObjectUrl='';
+  let videoObjectUrl='';
+  const value=name=>form.querySelector(`[name="${name}"]`)?.value||'';
+  const selectedFile=name=>form.querySelector(`[name="${name}"]`)?.files?.[0]||null;
+  const embedUrl=url=> {
+    const youtube=url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([A-Za-z0-9_-]{6,})/);
+    if(youtube)return `https://www.youtube.com/embed/${youtube[1]}?rel=0&modestbranding=1`;
+    const vimeo=url.match(/vimeo\.com\/(\d+)/);
+    return vimeo?`https://player.vimeo.com/video/${vimeo[1]}`:'';
+  };
+  const clearObjectUrls=()=> {
+    if(imageObjectUrl)URL.revokeObjectURL(imageObjectUrl);
+    if(videoObjectUrl)URL.revokeObjectURL(videoObjectUrl);
+    imageObjectUrl='';videoObjectUrl='';
+  };
+  const update=()=> {
+    const enabled=form.querySelector('[name="banner_enabled"]')?.checked;
+    const type=value('banner_type')||'image';
+    const display=value('banner_display')||'full';
+    const height=value('banner_height')||'auto';
+    preview.classList.toggle('banner-preview-disabled',!enabled);
+    preview.dataset.display=display;
+    preview.dataset.height=height;
+    if(stage)stage.hidden=!enabled;
+    [image,video,embed].forEach(media=>{if(media)media.hidden=true});
+
+    if(type==='video_upload'&&video) {
+      const file=selectedFile('banner_video');
+      if(videoObjectUrl)URL.revokeObjectURL(videoObjectUrl);
+      videoObjectUrl=file?URL.createObjectURL(file):'';
+      const source=videoObjectUrl||form.dataset.currentBannerVideo||'';
+      if(source)video.src=source;else video.removeAttribute('src');
+      video.hidden=!source;
+    } else if(type==='video_embed'&&embed) {
+      const source=embedUrl(value('banner_embed_url'));
+      if(source)embed.src=source;else embed.removeAttribute('src');
+      embed.hidden=!source;
+    } else if(image) {
+      const file=selectedFile('banner_image');
+      if(imageObjectUrl)URL.revokeObjectURL(imageObjectUrl);
+      imageObjectUrl=file?URL.createObjectURL(file):'';
+      image.src=imageObjectUrl||form.dataset.currentBannerImage||'';
+      image.hidden=false;
+    }
+
+    if(nav) {
+      const position=value('nav_position')||'below_banner';
+      nav.dataset.position=position;
+      nav.dataset.alignment=value('nav_alignment')||'center';
+      nav.textContent=(form.querySelector('[name="nav_logo_enabled"]')?.checked?'LOGO · ':'')+'HOME · SERVICES · GALLERY · ABOUT · CONTACT';
+      if(stage) {
+        if(position==='above_banner')preview.insertBefore(nav,stage);
+        else preview.insertBefore(stage,nav);
+      }
+    }
+  };
+  form.querySelectorAll('input,select').forEach(field=> {
+    field.addEventListener('input',update);
+    field.addEventListener('change',update);
+  });
+  form.querySelector('[data-banner-preview-action]')?.addEventListener('click',()=> {
+    update();
+    preview.scrollIntoView({behavior:'smooth',block:'center'});
+    if(window.showNotify)showNotify('Preview updated. Nothing has been published yet.','info');
+  });
+  form.querySelector('[data-banner-cancel-action]')?.addEventListener('click',()=> {
+    clearObjectUrls();
+    form.reset();
+    form.querySelectorAll('select').forEach(select=>select.dispatchEvent(new Event('change',{bubbles:true})));
+    form.classList.remove('has-unsaved-changes');
+    window.setTimeout(update,0);
+    if(window.showNotify)showNotify('Unsaved banner changes were cancelled.','info');
+  });
+  window.addEventListener('beforeunload',clearObjectUrls);
+  update();
+})();
+
 /* ==========================================================
    PHASE 1 - Focused landing page section editor
    ========================================================== */
@@ -392,6 +506,7 @@ document.querySelectorAll('.notification-bell,.profile-menu').forEach(menu=>menu
   const nextButton = document.querySelector('[data-section-next]');
   const savebar = document.querySelector('[data-content-savebar]');
   const aboutArtworkPanel = document.querySelector('[data-about-artwork-panel]');
+  const pageMediaPanels = Array.from(document.querySelectorAll('[data-page-media-panel]'));
   const deviceButtons = Array.from(document.querySelectorAll('[data-preview-device]'));
   const previewStage = document.querySelector('[data-preview-stage]');
 
@@ -438,6 +553,9 @@ document.querySelectorAll('.notification-bell,.profile-menu').forEach(menu=>menu
     const isEditableContent = contentEditors.some(editor => editor.dataset.contentEditor === key);
     if (savebar) savebar.hidden = !isEditableContent;
     if (aboutArtworkPanel) aboutArtworkPanel.hidden = key !== 'about';
+    pageMediaPanels.forEach(panel => {
+      panel.hidden = panel.dataset.pageMediaPanel !== key;
+    });
 
     const sectionTitle = tab.dataset.sectionTitle || '';
     const sectionDescription = tab.dataset.sectionDescription || '';

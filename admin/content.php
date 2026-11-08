@@ -5,6 +5,24 @@ require_permission('content.view');
 $pdo = db();
 
 $contentGroups = [
+    'navigation' => [
+        'title' => 'Navigation',
+        'description' => 'Public menu labels and main brand wording.',
+        'icon' => '🧭',
+        'anchor' => 'top',
+        'fields' => [
+            'brand_name' => ['Public brand name', 'input'],
+            'brand_tagline' => ['Public brand tagline', 'input'],
+            'nav_home' => ['Home menu label', 'input'],
+            'nav_about' => ['About menu label', 'input'],
+            'nav_services' => ['Services menu label', 'input'],
+            'nav_videos' => ['Videos menu label', 'input'],
+            'nav_gallery' => ['Gallery menu label', 'input'],
+            'nav_areas' => ['Service Areas menu label', 'input'],
+            'nav_contact' => ['Contact menu label', 'input'],
+            'nav_estimate' => ['Estimate button label', 'input'],
+        ],
+    ],
     'home' => [
         'title' => 'Home / Hero',
         'description' => 'The first message visitors see when they open the website.',
@@ -14,6 +32,14 @@ $contentGroups = [
             'hero_eyebrow' => ['Hero eyebrow', 'input'],
             'hero_title' => ['Hero title', 'input'],
             'hero_text' => ['Hero description', 'textarea'],
+            'hero_primary_button' => ['Primary button label', 'input'],
+            'hero_secondary_button' => ['Call button label', 'input'],
+            'hero_trust_1' => ['Trust point 1', 'input'],
+            'hero_trust_2' => ['Trust point 2', 'input'],
+            'hero_trust_3' => ['Trust point 3', 'input'],
+            'hero_badge_title' => ['Image badge title', 'input'],
+            'hero_badge_text' => ['Image badge text', 'input'],
+            'intro_kicker' => ['Intro eyebrow', 'input'],
             'intro_title' => ['Intro title', 'input'],
             'intro_text' => ['Intro text', 'textarea'],
         ],
@@ -24,11 +50,55 @@ $contentGroups = [
         'icon' => '👷',
         'anchor' => 'about',
         'fields' => [
+            'about_kicker' => ['About eyebrow', 'input'],
             'about_title' => ['About title', 'input'],
             'about_text' => ['About paragraph 1', 'textarea'],
             'about_text_2' => ['About paragraph 2', 'textarea'],
+            'about_note_kicker' => ['Photo note eyebrow', 'input'],
+            'about_note_title' => ['Photo note title', 'input'],
+            'mission_label' => ['Mission heading', 'input'],
             'mission' => ['Mission', 'textarea'],
+            'vision_label' => ['Vision heading', 'input'],
             'vision' => ['Vision', 'textarea'],
+            'about_value_1' => ['Company value 1', 'input'],
+            'about_value_2' => ['Company value 2', 'input'],
+            'about_value_3' => ['Company value 3', 'input'],
+            'about_value_4' => ['Company value 4', 'input'],
+            'about_value_5' => ['Company value 5', 'input'],
+            'about_value_6' => ['Company value 6', 'input'],
+        ],
+    ],
+    'services' => [
+        'title' => 'Services',
+        'description' => 'Section heading and service catalog introduction.',
+        'icon' => '🛠️',
+        'anchor' => 'services',
+        'fields' => [
+            'services_kicker' => ['Services eyebrow', 'input'],
+            'services_title' => ['Services title', 'input'],
+            'services_text' => ['Services support text', 'textarea'],
+        ],
+    ],
+    'videos' => [
+        'title' => 'Videos',
+        'description' => 'Video section heading and introduction.',
+        'icon' => '🎬',
+        'anchor' => 'videos',
+        'fields' => [
+            'videos_kicker' => ['Videos eyebrow', 'input'],
+            'videos_title' => ['Videos title', 'input'],
+            'videos_text' => ['Videos support text', 'textarea'],
+        ],
+    ],
+    'gallery' => [
+        'title' => 'Gallery',
+        'description' => 'Project gallery heading and action label.',
+        'icon' => '🖼️',
+        'anchor' => 'gallery',
+        'fields' => [
+            'gallery_kicker' => ['Gallery eyebrow', 'input'],
+            'gallery_title' => ['Gallery title', 'input'],
+            'gallery_cta' => ['Gallery action label', 'input'],
         ],
     ],
     'areas' => [
@@ -37,8 +107,22 @@ $contentGroups = [
         'icon' => '📍',
         'anchor' => 'areas',
         'fields' => [
+            'areas_kicker' => ['Service Areas eyebrow', 'input'],
             'areas_title' => ['Service Areas title', 'input'],
             'areas_text' => ['Service Areas text', 'textarea'],
+            'areas_button' => ['Service Areas call button', 'input'],
+        ],
+    ],
+    'tips' => [
+        'title' => 'Home Tips',
+        'description' => 'Tips section heading, introduction and link label.',
+        'icon' => '💡',
+        'anchor' => 'tips',
+        'fields' => [
+            'tips_kicker' => ['Home Tips eyebrow', 'input'],
+            'tips_title' => ['Home Tips title', 'input'],
+            'tips_text' => ['Home Tips support text', 'textarea'],
+            'tips_link_label' => ['Tip link label', 'input'],
         ],
     ],
     'estimate' => [
@@ -47,8 +131,30 @@ $contentGroups = [
         'icon' => '📝',
         'anchor' => 'estimate',
         'fields' => [
+            'estimate_kicker' => ['Estimate eyebrow', 'input'],
             'estimate_title' => ['Estimate title', 'input'],
             'estimate_text' => ['Estimate text', 'textarea'],
+            'estimate_call_label' => ['Call contact label', 'input'],
+            'estimate_email_label' => ['Email contact label', 'input'],
+            'form_name_label' => ['Name field label', 'input'],
+            'form_name_placeholder' => ['Name placeholder', 'input'],
+            'form_phone_label' => ['Phone field label', 'input'],
+            'form_phone_placeholder' => ['Phone placeholder', 'input'],
+            'form_email_label' => ['Email field label', 'input'],
+            'form_email_placeholder' => ['Email placeholder', 'input'],
+            'form_date_label' => ['Date field label', 'input'],
+            'form_address_label' => ['Address field label', 'input'],
+            'form_address_placeholder' => ['Address placeholder', 'input'],
+            'form_service_label' => ['Service field label', 'input'],
+            'form_service_placeholder' => ['Service placeholder', 'input'],
+            'form_message_label' => ['Project description label', 'input'],
+            'form_message_placeholder' => ['Project description placeholder', 'input'],
+            'form_upload_title' => ['Photo upload title', 'input'],
+            'form_upload_text' => ['Photo upload instructions', 'input'],
+            'form_upload_note' => ['Photo upload limits', 'input'],
+            'form_submit_label' => ['Submit button label', 'input'],
+            'form_whatsapp_label' => ['WhatsApp button label', 'input'],
+            'form_note' => ['Form footer note', 'input'],
         ],
     ],
     'contact' => [
@@ -57,12 +163,46 @@ $contentGroups = [
         'icon' => '☎️',
         'anchor' => 'contact',
         'fields' => [
+            'contact_kicker' => ['Contact eyebrow', 'input'],
             'contact_title' => ['Contact title', 'input'],
+            'contact_text' => ['Contact introduction', 'textarea'],
+            'contact_accent' => ['Contact highlight', 'input'],
+            'contact_phone_label' => ['Phone card label', 'input'],
+            'contact_phone_note' => ['Phone card note', 'input'],
+            'contact_whatsapp_label' => ['WhatsApp card label', 'input'],
+            'contact_whatsapp_title' => ['WhatsApp card title', 'input'],
+            'contact_whatsapp_note' => ['WhatsApp card note', 'input'],
+            'contact_email_label' => ['Email card label', 'input'],
+            'contact_email_note' => ['Email card note', 'input'],
+            'contact_youtube_label' => ['YouTube card label', 'input'],
+            'contact_youtube_title' => ['YouTube card title', 'input'],
+            'contact_youtube_note' => ['YouTube card note', 'input'],
+        ],
+    ],
+    'footer' => [
+        'title' => 'Footer',
+        'description' => 'Footer headings, links and copyright wording.',
+        'icon' => '⬇️',
+        'anchor' => 'site-footer',
+        'fields' => [
+            'footer_explore_title' => ['Explore column title', 'input'],
+            'footer_contact_title' => ['Contact column title', 'input'],
+            'footer_website_title' => ['Website column title', 'input'],
+            'footer_email_label' => ['Footer email link label', 'input'],
+            'footer_estimate_label' => ['Footer estimate link label', 'input'],
+            'footer_copyright' => ['Copyright text', 'input'],
         ],
     ],
 ];
 
 $sectionNavigator = [
+    'navigation' => [
+        'title' => 'Navigation',
+        'description' => 'Menu labels and public brand wording.',
+        'icon' => '🧭',
+        'anchor' => 'top',
+        'type' => 'content',
+    ],
     'home' => [
         'title' => 'Home / Hero',
         'description' => 'Hero and introductory content.',
@@ -82,7 +222,7 @@ $sectionNavigator = [
         'description' => 'Service cards and sub-services.',
         'icon' => '🛠️',
         'anchor' => 'services',
-        'type' => 'module',
+        'type' => 'content',
         'manage_url' => 'services.php',
         'manage_label' => 'Manage services',
     ],
@@ -91,7 +231,7 @@ $sectionNavigator = [
         'description' => 'Project videos and approved media.',
         'icon' => '🎬',
         'anchor' => 'videos',
-        'type' => 'module',
+        'type' => 'content',
         'manage_url' => 'videos.php',
         'manage_label' => 'Manage videos',
     ],
@@ -100,7 +240,7 @@ $sectionNavigator = [
         'description' => 'Project images and categories.',
         'icon' => '🖼️',
         'anchor' => 'gallery',
-        'type' => 'module',
+        'type' => 'content',
         'manage_url' => 'gallery.php',
         'manage_label' => 'Manage gallery',
     ],
@@ -118,7 +258,7 @@ $sectionNavigator = [
         'description' => 'Educational tips shown on the website.',
         'icon' => '💡',
         'anchor' => 'tips',
-        'type' => 'module',
+        'type' => 'content',
         'manage_url' => 'tips.php',
         'manage_label' => 'Manage home tips',
     ],
@@ -138,6 +278,13 @@ $sectionNavigator = [
         'manage_url' => 'settings.php',
         'manage_label' => 'Manage contact details',
     ],
+    'footer' => [
+        'title' => 'Footer',
+        'description' => 'Footer headings, links and copyright.',
+        'icon' => '⬇️',
+        'anchor' => 'site-footer',
+        'type' => 'content',
+    ],
 ];
 
 $fields = [];
@@ -146,6 +293,29 @@ foreach ($contentGroups as $group) {
         $fields[$key] = $meta[0];
     }
 }
+
+$pageMediaDefinitions = [
+    'hero' => [
+        'section' => 'home',
+        'title' => 'Main Home image',
+        'description' => 'Large project image shown beside the first message on the Home section.',
+        'path_key' => 'hero_image_path',
+        'alt_key' => 'hero_image_alt',
+        'position_key' => 'hero_image_position',
+        'default_path' => 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?auto=format&fit=crop&w=1200&q=88',
+        'default_alt' => "Castro's Ready construction project",
+    ],
+    'about' => [
+        'section' => 'about',
+        'title' => 'Main About image',
+        'description' => 'Large image shown beside the company story in the About section.',
+        'path_key' => 'about_image_path',
+        'alt_key' => 'about_image_alt',
+        'position_key' => 'about_image_position',
+        'default_path' => 'https://images.unsplash.com/photo-1531835551805-16d864c8d311?auto=format&fit=crop&w=1100&q=85',
+        'default_alt' => 'Comfortable finished home interior',
+    ],
+];
 
 $returnSection = (string)($_POST['return_section'] ?? $_GET['section'] ?? 'home');
 if (!isset($sectionNavigator[$returnSection])) {
@@ -163,6 +333,49 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? 'draft';
 
     try {
+        if ($action === 'save_page_media') {
+            if (!user_can('content.edit')) {
+                throw new RuntimeException('Your role cannot update website images.');
+            }
+
+            $mediaKey = (string)($_POST['media_key'] ?? '');
+            if (!isset($pageMediaDefinitions[$mediaKey])) {
+                throw new RuntimeException('Unknown website image.');
+            }
+
+            $definition = $pageMediaDefinitions[$mediaKey];
+            $path = trim((string)($_POST['current_image_path'] ?? ''));
+            $libraryPath = trim((string)($_POST['media_path'] ?? ''));
+
+            if (isset($_POST['remove_image'])) {
+                $path = '';
+            }
+            if ($libraryPath !== '') {
+                $libraryCheck = $pdo->prepare('SELECT COUNT(*) FROM media_library WHERE file_path=?');
+                $libraryCheck->execute([$libraryPath]);
+                if ((int)$libraryCheck->fetchColumn() !== 1) {
+                    throw new RuntimeException('Select a valid image from the Media Library.');
+                }
+                $path = $libraryPath;
+            }
+            if (!empty($_FILES['section_image']['name'])) {
+                $path = upload_image($_FILES['section_image'], 'page-sections', $mediaKey, 12);
+                media_add($path, (string)$definition['title']);
+            }
+
+            $position = (string)($_POST['image_position'] ?? 'center');
+            if (!in_array($position, ['center','top','bottom','left','right'], true)) $position = 'center';
+
+            save_setting((string)$definition['path_key'], $path);
+            save_setting((string)$definition['alt_key'], trim((string)($_POST['image_alt'] ?? '')));
+            save_setting((string)$definition['position_key'], $position);
+
+            log_activity('page_media_update', 'Updated public website section image', ['media_key'=>$mediaKey]);
+            flash('success', $definition['title'].' updated.');
+            header('Location: content.php?section='.rawurlencode((string)$definition['section']));
+            exit;
+        }
+
         if ($action === 'save_about_artworks') {
             if (!user_can('content.edit')) {
                 throw new RuntimeException('Your role cannot update About artwork.');
@@ -341,6 +554,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $live = site_content();
 $draft = draft_content();
 $editing = $draft ? array_replace($live, $draft) : $live;
+$pageSettings = settings();
+$mediaLibraryImages = $pdo->query("SELECT file_path,title FROM media_library WHERE mime_type LIKE 'image/%' ORDER BY id DESC LIMIT 150")->fetchAll();
 $versions = $pdo->query(
     'SELECT id, note, created_at FROM content_versions ORDER BY id DESC LIMIT 10'
 )->fetchAll();
@@ -543,6 +758,79 @@ require __DIR__ . '/_header.php';
                 <?php endif; ?>
             </div>
         </form>
+
+        <?php foreach($pageMediaDefinitions as $mediaKey=>$definition):
+            $sectionKey=(string)$definition['section'];
+            $currentPath=trim((string)($pageSettings[$definition['path_key']]??$definition['default_path']));
+            $currentAlt=(string)($pageSettings[$definition['alt_key']]??$definition['default_alt']);
+            $currentPosition=(string)($pageSettings[$definition['position_key']]??'center');
+        ?>
+        <section class="panel page-media-panel" data-page-media-panel="<?=h($sectionKey)?>" <?=$selectedSection===$sectionKey?'':'hidden'?>>
+            <div class="section-heading">
+                <div>
+                    <p class="eyebrow">SECTION IMAGE</p>
+                    <h3><?=h($definition['title'])?></h3>
+                    <p class="muted"><?=h($definition['description'])?></p>
+                </div>
+            </div>
+            <form method="post" enctype="multipart/form-data" data-unsaved-form>
+                <input type="hidden" name="csrf" value="<?=h(csrf_token())?>">
+                <input type="hidden" name="action" value="save_page_media">
+                <input type="hidden" name="media_key" value="<?=h($mediaKey)?>">
+                <input type="hidden" name="current_image_path" value="<?=h($currentPath)?>">
+                <input type="hidden" name="return_section" value="<?=h($sectionKey)?>">
+
+                <?php if($currentPath!==''): ?>
+                <button type="button" class="current-media-preview page-section-image-preview" data-preview-src="<?=h(preg_match('~^https?://~i',$currentPath)?$currentPath:'../'.$currentPath)?>" data-preview-caption="<?=h($definition['title'])?>">
+                    <img src="<?=h(preg_match('~^https?://~i',$currentPath)?$currentPath:'../'.$currentPath)?>" alt="<?=h($currentAlt)?>">
+                    <span>Open current image</span>
+                </button>
+                <?php else: ?>
+                <div class="empty-state compact-empty-state"><strong>No image published</strong><span>Upload or choose an image below.</span></div>
+                <?php endif; ?>
+
+                <div class="upload-zone premium-media-zone" data-upload-zone tabindex="0">
+                    <input type="file" name="section_image" accept="image/jpeg,image/png,image/webp" data-empty-label="Drop, paste or choose replacement image">
+                    <div class="upload-icon"><?=icon('image')?></div>
+                    <strong>Replace image</strong>
+                    <small>Drag & drop, paste from clipboard or choose JPG, PNG or WEBP.</small>
+                    <div class="upload-selection-name" data-upload-name>Drop, paste or choose replacement image</div>
+                    <div class="upload-preview premium-upload-preview" data-upload-preview></div>
+                </div>
+
+                <label>Or reuse an image from Media Library
+                    <select name="media_path">
+                        <option value="">Keep current image / upload a new one</option>
+                        <?php foreach($mediaLibraryImages as $libraryImage): ?>
+                        <option value="<?=h($libraryImage['file_path'])?>"><?=h($libraryImage['title']?:basename($libraryImage['file_path']))?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </label>
+
+                <div class="two-col">
+                    <label>Alternative text
+                        <input name="image_alt" value="<?=h($currentAlt)?>" placeholder="Describe the image for accessibility">
+                    </label>
+                    <label>Visible image focus
+                        <select name="image_position">
+                            <?php foreach(['center'=>'Center','top'=>'Top','bottom'=>'Bottom','left'=>'Left','right'=>'Right'] as $value=>$label): ?>
+                            <option value="<?=$value?>" <?=$currentPosition===$value?'selected':''?>><?=$label?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </label>
+                </div>
+
+                <?php if($currentPath!==''): ?>
+                <label class="premium-check compact-check"><input type="checkbox" name="remove_image" value="1"><span class="check-ui"></span><span>Remove this image from the public section</span></label>
+                <?php endif; ?>
+
+                <div class="form-actions">
+                    <button type="submit">Save section image</button>
+                    <a class="button secondary" href="../?preview=1#<?=h($sectionKey)?>" target="_blank" rel="noopener">Preview published section</a>
+                </div>
+            </form>
+        </section>
+        <?php endforeach; ?>
 
         <section class="panel about-artwork-panel" data-about-artwork-panel <?= $selectedSection === 'about' ? '' : 'hidden' ?>>
             <div class="section-heading">

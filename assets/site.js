@@ -99,14 +99,44 @@ upload?.addEventListener('paste',e=> {
 }
 );
 const light=document.querySelector('[data-site-lightbox]'),lightImg=document.querySelector('[data-site-lightbox-img]'),lightCap=document.querySelector('[data-site-lightbox-caption]');
-document.querySelectorAll('[data-gallery-src]').forEach(b=>b.addEventListener('click',()=> {
-  lightImg.src=b.dataset.gallerySrc||'';lightCap.textContent=b.dataset.galleryTitle||'';light.classList.add('open');light.setAttribute('aria-hidden','false')
+let lightboxTrigger=null;
+function openLightbox(trigger) {
+  if(!light||!lightImg||!trigger)return;
+  const src=trigger.dataset.gallerySrc||trigger.querySelector('[data-gallery-src]')?.dataset.gallerySrc||'';
+  const title=trigger.dataset.galleryTitle||trigger.querySelector('[data-gallery-src]')?.dataset.galleryTitle||'';
+  if(!src)return;
+  lightboxTrigger=trigger;
+  lightImg.src=src;
+  lightImg.alt=title?`Large view of ${title}`:'Large project image';
+  if(lightCap)lightCap.textContent=title;
+  light.classList.add('open');
+  light.setAttribute('aria-hidden','false');
+  document.body.classList.add('lightbox-open');
+  light.querySelector('[data-site-lightbox-close]')?.focus();
 }
-));
+document.querySelectorAll('[data-gallery-src]').forEach(button=>button.addEventListener('click',event=> {
+  event.stopPropagation();openLightbox(button)
+}));
+document.querySelectorAll('.gallery-card').forEach(card=> {
+  const button=card.querySelector('[data-gallery-src]');
+  if(!button)return;
+  card.tabIndex=0;
+  card.setAttribute('role','button');
+  card.setAttribute('aria-label',button.getAttribute('aria-label')||'Open project image');
+  card.addEventListener('click',()=>openLightbox(button));
+  card.addEventListener('keydown',event=> {
+    if(event.key==='Enter'||event.key===' ') {
+      event.preventDefault();openLightbox(button)
+    }
+  })
+});
 function closeLight() {
   light?.classList.remove('open');
   light?.setAttribute('aria-hidden','true');
-  if(lightImg)lightImg.src=''
+  document.body.classList.remove('lightbox-open');
+  if(lightImg)lightImg.src='';
+  lightboxTrigger?.focus();
+  lightboxTrigger=null
 }
 document.querySelector('[data-site-lightbox-close]')?.addEventListener('click',closeLight);
 light?.addEventListener('click',e=> {

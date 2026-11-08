@@ -180,6 +180,21 @@ CREATE TABLE IF NOT EXISTS public_form_rate_limits (
   KEY idx_public_form_rate_blocked (blocked_until)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS website_visits (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  visitor_hash CHAR(64) NOT NULL,
+  visit_date DATE NOT NULL,
+  first_seen_at DATETIME NOT NULL,
+  last_seen_at DATETIME NOT NULL,
+  page_views INT UNSIGNED NOT NULL DEFAULT 1,
+  entry_path VARCHAR(500) NULL,
+  referrer VARCHAR(700) NULL,
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_website_visit_day (visitor_hash,visit_date),
+  KEY idx_website_visit_date (visit_date),
+  KEY idx_website_visit_last_seen (last_seen_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS correo_tipo (
   correo_tipo_id INT NOT NULL,
   nombre VARCHAR(30) NOT NULL,
@@ -248,6 +263,50 @@ INSERT INTO site_content(content_key,content_value) VALUES
 ('contact_title','Ready when your home needs us.')
 ON DUPLICATE KEY UPDATE content_value=VALUES(content_value);
 
+INSERT INTO site_content(content_key,content_value) VALUES
+('brand_name','CASTRO''S READY'),
+('brand_tagline','Painting · Repairs · Maintenance'),
+('nav_home','Home'),('nav_about','About'),('nav_services','Services'),('nav_videos','Videos'),
+('nav_gallery','Gallery'),('nav_areas','Service Areas'),('nav_contact','Contact'),('nav_estimate','Free Estimate'),
+('hero_primary_button','Request a Free Estimate'),('hero_secondary_button','Call'),
+('hero_trust_1','Reliable service'),('hero_trust_2','Quality workmanship'),('hero_trust_3','Home-focused care'),
+('hero_badge_title','One trusted team.'),('hero_badge_text','From touch-ups to full transformations.'),
+('intro_kicker','WHAT WE DO'),
+('about_kicker','ABOUT CASTRO''S READY'),('about_note_kicker','Built around one standard'),('about_note_title','Do the work right.'),
+('mission_label','Mission'),('vision_label','Vision'),
+('about_value_1','Integrity'),('about_value_2','Respect'),('about_value_3','Quality'),
+('about_value_4','Reliability'),('about_value_5','Accountability'),('about_value_6','Customer Focus'),
+('services_kicker','OUR SERVICES'),('services_title','From maintenance to complete transformations.'),
+('services_text','Select a category to explore the work Castro''s Ready can help with.'),
+('videos_kicker','SEE OUR WORK'),('videos_title','Watch the craftsmanship behind the finished result.'),
+('videos_text','Real project videos, presented in a clean and consistent showcase.'),
+('gallery_kicker','PROJECT GALLERY'),('gallery_title','Craftsmanship is easier to trust when you can see it.'),
+('gallery_cta','Start your project'),
+('areas_kicker','SERVICE AREAS'),('areas_button','Ask if we serve your area'),
+('tips_kicker','HOME IMPROVEMENT TIPS'),('tips_title','Useful advice for protecting your home.'),
+('tips_text','Practical guidance for keeping your property looking and performing its best.'),('tips_link_label','Read guide'),
+('estimate_kicker','FREE ESTIMATE'),('estimate_call_label','Call'),('estimate_email_label','Email'),
+('form_name_label','Full Name'),('form_name_placeholder','Your name'),
+('form_phone_label','Phone'),('form_phone_placeholder','(000) 000-0000'),
+('form_email_label','Email'),('form_email_placeholder','you@email.com'),('form_date_label','Desired Date'),
+('form_address_label','Address'),('form_address_placeholder','Project address'),
+('form_service_label','Service Needed'),('form_service_placeholder','Select a service'),
+('form_message_label','Tell us about your project'),('form_message_placeholder','A short description is enough to get started.'),
+('form_upload_title','Add project photos'),('form_upload_text','Drag & drop, paste from clipboard, or choose files'),
+('form_upload_note','Optional · JPG, PNG or WebP · up to 8 images'),
+('form_submit_label','Send Free Estimate Request'),('form_whatsapp_label','Continue on WhatsApp'),
+('form_note','You can submit the form even if you do not attach a photo.'),
+('contact_kicker','CONTACT'),('contact_text','Choose the easiest way to reach Castro''s Ready.'),
+('contact_accent','Fast, direct, professional contact.'),('contact_phone_label','Phone'),
+('contact_phone_note','Call our team directly'),('contact_whatsapp_label','WhatsApp'),
+('contact_whatsapp_title','Start a conversation'),('contact_whatsapp_note','Quick project questions'),
+('contact_email_label','Email'),('contact_email_note','Send project information'),
+('contact_youtube_label','YouTube'),('contact_youtube_title','@CastrosReady'),
+('contact_youtube_note','See more of our work'),
+('footer_explore_title','Explore'),('footer_contact_title','Contact'),('footer_website_title','Website'),
+('footer_email_label','Email us'),('footer_estimate_label','Free Estimate'),('footer_copyright','© 2026 Castro''s Ready')
+ON DUPLICATE KEY UPDATE content_value=VALUES(content_value);
+
 INSERT INTO settings(setting_key,setting_value) VALUES
 ('phone','+1 (202) 644-2717'),
 ('phone_digits','12026442717'),
@@ -256,9 +315,13 @@ INSERT INTO settings(setting_key,setting_value) VALUES
 ('estimate_copy_email',''),
 ('youtube','https://www.youtube.com/@CastrosReady'),
 ('facebook','#'),('tiktok','#'),('website','castrosready.us'),('business_hours',''),
-('admin_brand_name','Castro''s Ready Admin'),('admin_logo_path','assets/logo.jpg'),('favicon_path','assets/logo.jpg'),
+('admin_brand_name','Castro''s Ready Admin'),('site_logo_path','assets/logo.jpg'),('admin_logo_path','assets/logo.jpg'),('favicon_path','assets/logo.jpg'),
+('hero_image_path','https://images.unsplash.com/photo-1504307651254-35680f356dfd?auto=format&fit=crop&w=1200&q=88'),
+('hero_image_alt','Castro''s Ready construction project'),('hero_image_position','center'),
+('about_image_path','https://images.unsplash.com/photo-1531835551805-16d864c8d311?auto=format&fit=crop&w=1100&q=85'),
+('about_image_alt','Comfortable finished home interior'),('about_image_position','center'),
 ('maintenance_mode','0'),('maintenance_title','We are improving our website.'),('maintenance_text','Castro''s Ready will be back shortly. For immediate assistance, contact us by phone or WhatsApp.'),('maintenance_image_path',''),
-('whatsapp_enabled','1'),('whatsapp_message','Hello, I would like more information about Castro''s Ready services.'),('whatsapp_position','right'),
+('whatsapp_enabled','1'),('whatsapp_number','12026442717'),('whatsapp_message','Hello, I would like more information about Castro''s Ready services.'),('whatsapp_position','right'),
 ('service_map_query','6624 Aspern Drive, Elkridge, MD 21075, United States'),
 ('service_map_label','Castro''s Ready'),
 ('service_map_enabled','1')
@@ -315,6 +378,13 @@ INSERT INTO gallery(title,image_path,sort_order,active)
 SELECT 'Decks','',70,1 WHERE NOT EXISTS (SELECT 1 FROM gallery WHERE title='Decks');
 INSERT INTO gallery(title,image_path,sort_order,active)
 SELECT 'Concrete','',80,1 WHERE NOT EXISTS (SELECT 1 FROM gallery WHERE title='Concrete');
+
+UPDATE gallery SET image_path='https://images.unsplash.com/photo-1503387762-592deb58ef4e?auto=format&fit=crop&w=1100&q=85' WHERE title='Before & After' AND (image_path IS NULL OR image_path='');
+UPDATE gallery SET image_path='https://images.unsplash.com/photo-1562259949-e8e7689d7828?auto=format&fit=crop&w=900&q=85' WHERE title='Interior Painting' AND (image_path IS NULL OR image_path='');
+UPDATE gallery SET image_path='https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?auto=format&fit=crop&w=900&q=85' WHERE title='Exterior Painting' AND (image_path IS NULL OR image_path='');
+UPDATE gallery SET image_path='https://images.unsplash.com/photo-1581858726788-75bc0f6a952d?auto=format&fit=crop&w=900&q=85' WHERE title='Remodeling' AND (image_path IS NULL OR image_path='');
+UPDATE gallery SET image_path='https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=900&q=85' WHERE title='Flooring' AND (image_path IS NULL OR image_path='');
+UPDATE gallery SET image_path='https://images.unsplash.com/photo-1590725121839-892b458a74fe?auto=format&fit=crop&w=900&q=85' WHERE title IN ('Drywall Repair','Decks','Concrete') AND (image_path IS NULL OR image_path='');
 
 INSERT INTO tips(title,url,sort_order,active)
 SELECT 'How Often Should You Paint Your Home?','#',10,1 WHERE NOT EXISTS (SELECT 1 FROM tips WHERE title='How Often Should You Paint Your Home?');
@@ -408,7 +478,9 @@ WHERE NOT EXISTS (SELECT 1 FROM videos WHERE video_url LIKE '%rIuzhI1PAL0%');
 INSERT INTO settings(setting_key,setting_value) VALUES
 ('seo_title','Castro''s Ready | Home Improvement'),
 ('seo_description','Castro''s Ready — professional painting, remodeling, flooring, decks, carpentry, concrete, drywall and pressure washing.'),
-('seo_social_image',''),('seo_robots','index,follow'),
+('seo_social_image',''),('seo_robots','index,follow'),('seo_canonical_url','https://castrosready.us/'),
+('seo_site_name','Castro''s Ready'),('seo_business_type','HomeAndConstructionBusiness'),
+('seo_area_served','Elkridge, Maryland and surrounding areas'),
 ('mission_artwork_path','assets/about/mission.png'),('vision_artwork_path','assets/about/vision.png'),
 ('developer_credit_enabled','0'),('developer_credit_text','Website by ES MULTISERVICIOS')
 ON DUPLICATE KEY UPDATE setting_value=setting_value;

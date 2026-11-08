@@ -10,8 +10,11 @@ if($_SERVER['REQUEST_METHOD']==='POST') {
     try {
         if($action==='identity') {
             foreach(['admin_brand_name','phone','phone_digits','email','youtube','facebook','tiktok','website','business_hours','developer_credit_text'] as $k)save_setting($k,trim((string)($_POST[$k]??'')));
+            if(!empty($_FILES['site_logo']['name']))save_setting('site_logo_path',upload_image($_FILES['site_logo'],'branding','site-logo',5));
             if(!empty($_FILES['admin_logo']['name']))save_setting('admin_logo_path',upload_image($_FILES['admin_logo'],'branding','admin-logo',5));
             if(!empty($_FILES['favicon']['name']))save_setting('favicon_path',upload_image($_FILES['favicon'],'branding','favicon',3));
+            if(isset($_POST['remove_site_logo']))save_setting('site_logo_path','assets/logo.jpg');
+            if(isset($_POST['remove_admin_logo']))save_setting('admin_logo_path','assets/logo.jpg');
             if(isset($_POST['remove_favicon']))save_setting('favicon_path','');
             save_setting('developer_credit_enabled',isset($_POST['developer_credit_enabled'])?'1':'0');
             flash('success','Brand and contact settings saved.');
@@ -24,6 +27,9 @@ if($_SERVER['REQUEST_METHOD']==='POST') {
             flash('success','Website status updated.');
         } elseif($action==='whatsapp') {
             save_setting('whatsapp_enabled',isset($_POST['whatsapp_enabled'])?'1':'0');
+            $whatsappNumber=preg_replace('/\D+/','',(string)($_POST['whatsapp_number']??''));
+            if($whatsappNumber==='')throw new RuntimeException('Enter the WhatsApp number including country code.');
+            save_setting('whatsapp_number',$whatsappNumber);
             save_setting('whatsapp_message',trim((string)($_POST['whatsapp_message']??'')));
             save_setting('whatsapp_position',in_array($_POST['whatsapp_position']??'right',['left','right'],true)?$_POST['whatsapp_position']:'right');
             flash('success','WhatsApp widget updated.');
@@ -55,13 +61,13 @@ endif;
 ?>
 
 <div class="content-grid">
-<section class="panel animate-in">
+<section class="panel animate-in" id="branding">
 <div class="panel-heading">
 <div class="panel-icon"><?=icon('image')?>
 </div>
 <div>
-<h2>Admin branding</h2>
-<p>Change the name and logo displayed throughout this administrator.</p>
+<h2>Website & admin branding</h2>
+<p>Manage each logo independently. Uploading one does not replace the other.</p>
 </div>
 </div>
 <form method="post" enctype="multipart/form-data">
@@ -71,7 +77,16 @@ endif;
 <label>Admin name<input name="admin_brand_name" value="<?=h($set['admin_brand_name']??"Castro's Ready Admin")?>
 ">
 </label>
-<div class="branding-upload-grid">
+<div class="branding-upload-grid branding-upload-grid-three">
+<div class="upload-zone" data-upload-zone tabindex="0">
+<div class="upload-icon"><?=icon('image')?>
+</div>
+<strong>Public website logo</strong>
+<small data-upload-name>Drag & drop, paste, or choose image</small>
+<input type="file" name="site_logo" accept="image/jpeg,image/png,image/webp">
+<div class="upload-preview" data-upload-preview>
+</div>
+</div>
 <div class="upload-zone" data-upload-zone tabindex="0">
 <div class="upload-icon"><?=icon('image')?>
 </div>
@@ -91,6 +106,23 @@ endif;
 </div>
 </div>
 </div><?php
+if(!empty($set['site_logo_path'])||!empty($set['admin_logo_path'])):
+?>
+<div class="saved-branding-grid">
+<div class="saved-image-row">
+<img src="../<?=h($set['site_logo_path']??'assets/logo.jpg')?>" alt="Current public website logo">
+<div><strong>Current public logo</strong><small><?=h($set['site_logo_path']??'assets/logo.jpg')?></small></div>
+<label class="compact-check"><input type="checkbox" name="remove_site_logo" value="1"> Restore default</label>
+</div>
+<div class="saved-image-row">
+<img src="../<?=h($set['admin_logo_path']??'assets/logo.jpg')?>" alt="Current administrator logo">
+<div><strong>Current admin logo</strong><small><?=h($set['admin_logo_path']??'assets/logo.jpg')?></small></div>
+<label class="compact-check"><input type="checkbox" name="remove_admin_logo" value="1"> Restore default</label>
+</div>
+</div><?php
+endif;
+?>
+<?php
 if(!empty($set['favicon_path'])):
 ?>
 <div class="saved-favicon">
@@ -239,7 +271,10 @@ endif;
 <small>Show a compact WhatsApp contact button on the public website.</small>
 </span>
 </label>
-<div class="two-col">
+<div class="three-col whatsapp-settings-grid">
+<label>WhatsApp number (country code included)<input name="whatsapp_number" inputmode="tel" required value="<?=h($set['whatsapp_number']??$set['phone_digits']??'')?>" placeholder="12026442717">
+<small>Digits only are saved. Example: 1 + area code + number.</small>
+</label>
 <label>Default message<textarea name="whatsapp_message"><?=h($set['whatsapp_message']??'')?>
 </textarea>
 </label>

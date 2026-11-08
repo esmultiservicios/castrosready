@@ -18,8 +18,12 @@ if($_SERVER['REQUEST_METHOD']==='POST') {
                 media_add($path,$title?:'Gallery image');
             } elseif(!empty($_POST['media_path'])) {
                 $path=trim((string)$_POST['media_path']);
+                $libraryCheck=$pdo->prepare("SELECT COUNT(*) FROM media_library WHERE file_path=? AND mime_type LIKE 'image/%'");
+                $libraryCheck->execute([$path]);
+                if((int)$libraryCheck->fetchColumn()!==1)throw new RuntimeException('Select a valid image from the Media Library.');
             }
             if($title==='')throw new RuntimeException('Title is required.');
+            if($active&&$path==='')throw new RuntimeException('Upload or select an image before publishing this gallery item.');
             if($id)$pdo->prepare('UPDATE gallery SET title=?,image_path=?,sort_order=?,active=? WHERE id=?')->execute([$title,$path,$sort,$active,$id]);
             else $pdo->prepare('INSERT INTO gallery(title,image_path,sort_order,active) VALUES(?,?,?,?)')->execute([$title,$path,$sort,$active]);
             flash('success','Gallery item saved.');
@@ -77,7 +81,7 @@ endif;
 </div>
 <label>Or reuse image from Media Library<select name="media_path">
 <option value="">Keep current / upload new</option><?php
-foreach($pdo->query("SELECT file_path,title FROM media_library ORDER BY id DESC LIMIT 100")->fetchAll() as $m):
+foreach($pdo->query("SELECT file_path,title FROM media_library WHERE mime_type LIKE 'image/%' ORDER BY id DESC LIMIT 100")->fetchAll() as $m):
 ?>
 <option value="<?=h($m['file_path'])?>
 "><?=h($m['title']?:basename($m['file_path']))?>
@@ -96,8 +100,9 @@ endforeach;
 </div>
 </div><?php
 if($edit&&$edit['image_path']):
+$editImageUrl=preg_match('~^https?://~i',(string)$edit['image_path'])?$edit['image_path']:'../'.$edit['image_path'];
 ?>
-<button type="button" class="button secondary small" data-preview-src="../<?=h($edit['image_path'])?>
+<button type="button" class="button secondary small" data-preview-src="<?=h($editImageUrl)?>
 " data-preview-caption="<?=h($edit['title'])?>
 ">Preview current image</button><?php
 endif;
@@ -123,22 +128,23 @@ endif;
 </form>
 </section>
 <div class="gallery-editor"><?php
-foreach($rows as $i=>$r):$displayImage=$r['image_path']?'../'.$r['image_path']:gallery_fallback($i);
+foreach($rows as $i=>$r):
+$displayImage='';
+if($r['image_path'])$displayImage=preg_match('~^https?://~i',(string)$r['image_path'])?$r['image_path']:'../'.$r['image_path'];
 ?>
 <article class="gallery-item animate-in">
 <div class="gallery-media">
+<?php if($displayImage!==''): ?>
 <img src="<?=h($displayImage)?>
 " alt="<?=h($r['title'])?>
 ">
 <button type="button" class="zoom-btn" data-preview-src="<?=h($displayImage)?>
 " data-preview-caption="<?=h($r['title'])?>
 " aria-label="View large"><?=icon('eye')?>
-</button><?php
-if(!$r['image_path']):
-?>
-<span class="gallery-source-badge">Website preview image</span><?php
-endif;
-?>
+</button>
+<?php else: ?>
+<div class="gallery-empty-media"><strong>No image</strong><span>Upload an image before publishing.</span></div>
+<?php endif; ?>
 </div>
 <footer>
 <div class="gallery-meta">

@@ -1,5 +1,8 @@
 Options -Indexes
 DirectoryIndex index.php
+RewriteEngine On
+RewriteRule ^sitemap\.xml$ sitemap.php [L,NC]
+RewriteRule ^robots\.txt$ robots.php [L,NC]
 <FilesMatch "^(database\.sql|database-update\.sql|README\.txt|\.gitignore)$">
   Require all denied
 </FilesMatch>

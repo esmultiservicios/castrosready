@@ -12,6 +12,20 @@ $counts=['services'=>(int)$pdo->query('SELECT COUNT(*) FROM services WHERE activ
 $missing=(int)$pdo->query("SELECT COUNT(*) FROM gallery WHERE active=1 AND (image_path IS NULL OR image_path='')")->fetchColumn();
 $emailOk=(int)$pdo->query('SELECT COUNT(*) FROM correo WHERE estado=1')->fetchColumn()>0;
 $areas=(int)$pdo->query('SELECT COUNT(*) FROM service_areas WHERE active=1')->fetchColumn();
+$visitStats=['today'=>0,'week'=>0,'month'=>0,'unique_today'=>0,'unique_week'=>0,'unique_month'=>0];
+try {
+    $visitStats=$pdo->query(
+        "SELECT
+            COALESCE(SUM(CASE WHEN visit_date=CURDATE() THEN page_views ELSE 0 END),0) today,
+            COALESCE(SUM(CASE WHEN visit_date>=DATE_SUB(CURDATE(),INTERVAL 6 DAY) THEN page_views ELSE 0 END),0) week,
+            COALESCE(SUM(CASE WHEN visit_date>=DATE_FORMAT(CURDATE(),'%Y-%m-01') THEN page_views ELSE 0 END),0) month,
+            COUNT(DISTINCT CASE WHEN visit_date=CURDATE() THEN visitor_hash END) unique_today,
+            COUNT(DISTINCT CASE WHEN visit_date>=DATE_SUB(CURDATE(),INTERVAL 6 DAY) THEN visitor_hash END) unique_week,
+            COUNT(DISTINCT CASE WHEN visit_date>=DATE_FORMAT(CURDATE(),'%Y-%m-01') THEN visitor_hash END) unique_month
+         FROM website_visits"
+    )->fetch()?:$visitStats;
+} catch(Throwable $ignored) {
+}
 if(user_can('estimates.manage_all')) {
     $due=(int)$pdo->query("SELECT COUNT(*) FROM estimate_requests WHERE follow_up_date IS NOT NULL AND follow_up_date<=CURDATE() AND status NOT IN ('won','lost','closed')")->fetchColumn();
     $recent=$pdo->query('SELECT id,full_name,service_needed,status,priority,created_at FROM estimate_requests ORDER BY id DESC LIMIT 5')->fetchAll();
@@ -40,6 +54,7 @@ $stats[]=['Notifications',
 $counts['notifications'],
 'Unread alerts',
 'notifications.php'];
+$stats[]=['Visits today',(int)$visitStats['today'],'Public page views','dashboard.php#website-visits'];
 $attention=[];
 if(user_can('estimates.view'))$attention[]=['Follow-ups due',
 $due,
@@ -67,6 +82,7 @@ $emailOk?'Email delivery is configured.':'Configure SMTP or Microsoft Graph.',
 'email.php',
 'mail'];
 $cards=[['content.view','content.php','edit','Visual content editor','Draft, preview, approval and publishing.'],
+['content.view','website-media.php','image','Website images','Find and replace every image used on the public website.'],
 ['settings.manage','appearance.php','eye','Appearance','Typography, banner, navigation and visual presets.'],
 ['sections.manage','sections.php','dashboard','Section manager','Show, hide and reorder landing page sections.'],
 ['media.manage','media.php','image','Media Library','Upload, search, preview and reuse images.'],
@@ -121,6 +137,28 @@ foreach($stats as $s):
 endforeach;
 ?>
 </div>
+<section class="dashboard-section" id="website-visits">
+    <div class="section-heading">
+        <div>
+            <p class="eyebrow">WEBSITE TRAFFIC</p>
+            <h2>Public website visits</h2>
+            <p class="muted">Privacy-conscious totals based on an anonymous visitor cookie. Administrator previews and known bots are excluded.</p>
+        </div>
+    </div>
+    <div class="traffic-grid">
+        <?php foreach([
+            ['Today',(int)$visitStats['today'],(int)$visitStats['unique_today']],
+            ['Last 7 days',(int)$visitStats['week'],(int)$visitStats['unique_week']],
+            ['This month',(int)$visitStats['month'],(int)$visitStats['unique_month']]
+        ] as $traffic): ?>
+        <article class="traffic-card animate-in">
+            <span><?=h($traffic[0])?></span>
+            <strong data-stat="<?=$traffic[1]?>"><?=$traffic[1]?></strong>
+            <small><?=$traffic[2]?> unique visitor<?=$traffic[2]===1?'':'s'?></small>
+        </article>
+        <?php endforeach; ?>
+    </div>
+</section>
 <?php
 if($attention):
 ?>

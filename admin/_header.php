@@ -229,6 +229,9 @@ $missingRuntimeRequirements = array_values(array_filter(
             <a class="<?= $active === 'content' ? 'active' : '' ?>" href="content.php">
                 <?= icon('edit') ?><span>Page content</span>
             </a>
+            <a class="<?= $active === 'website-media' ? 'active' : '' ?>" href="website-media.php">
+                <?= icon('image') ?><span>Website images</span>
+            </a>
         <?php endif; ?>
 
         <?php if (user_can('sections.manage')): ?>

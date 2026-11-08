@@ -110,10 +110,13 @@ function server_runtime_requirements(): array {
         ],
         [
             'key'=>'fileinfo',
-            'name'=>'Fileinfo',
-            'available'=>extension_loaded('fileinfo')&&class_exists('finfo')&&defined('FILEINFO_MIME_TYPE'),
-            'purpose'=>'Validates the real type of uploaded images, videos and documents.',
-            'install'=>'Search for fileinfo in WHM → EasyApache 4 → PHP Extensions.',
+            'name'=>'Upload type validation',
+            'available'=>(extension_loaded('fileinfo')&&class_exists('finfo')&&defined('FILEINFO_MIME_TYPE'))||function_exists('file_get_contents'),
+            'purpose'=>'Validates uploaded images, videos and documents using Fileinfo or secure file signatures.',
+            'install'=>'Enable file_get_contents or install fileinfo in WHM → EasyApache 4 → PHP Extensions.',
+            'detail'=>(extension_loaded('fileinfo')&&class_exists('finfo')&&defined('FILEINFO_MIME_TYPE'))
+                ? 'Native PHP Fileinfo is active.'
+                : 'Secure signature fallback is active; Fileinfo remains optional.',
             'required'=>true,
         ],
         [
@@ -159,20 +162,62 @@ function server_runtime_requirements(): array {
     ];
 }
 function fileinfo_available(): bool {
-    foreach(server_runtime_requirements() as $requirement) {
-        if($requirement['key']==='fileinfo')return (bool)$requirement['available'];
+    return extension_loaded('fileinfo')&&class_exists('finfo')&&defined('FILEINFO_MIME_TYPE');
+}
+function upload_signature_mime_type(string $path): string {
+    if(!is_file($path)||!is_readable($path)||!function_exists('file_get_contents'))return '';
+    $head=@file_get_contents($path,false,null,0,64);
+    if(!is_string($head)||$head==='')return '';
+    if(str_starts_with($head,"\xFF\xD8\xFF"))return 'image/jpeg';
+    if(str_starts_with($head,"\x89PNG\x0D\x0A\x1A\x0A"))return 'image/png';
+    if(strlen($head)>=12&&substr($head,0,4)==='RIFF'&&substr($head,8,4)==='WEBP')return 'image/webp';
+    if(str_starts_with($head,"\x1A\x45\xDF\xA3"))return 'video/webm';
+    if(strlen($head)>=12&&substr($head,4,4)==='ftyp') {
+        return substr($head,8,4)==='qt  '?'video/quicktime':'video/mp4';
     }
-    return false;
+    if(str_starts_with($head,'%PDF-'))return 'application/pdf';
+    return '';
 }
 function detect_file_mime_type(string $path): string {
-    if(!fileinfo_available()) {
-        throw new RuntimeException('Image uploads are temporarily unavailable because the PHP Fileinfo extension is not enabled. Please contact the website administrator.');
+    $allowed=['image/jpeg','image/png','image/webp','video/mp4','video/webm','video/quicktime','application/pdf'];
+    $signature=upload_signature_mime_type($path);
+    if($signature!=='')return $signature;
+    if(fileinfo_available()) {
+        $finfo=new finfo(FILEINFO_MIME_TYPE);
+        $mime=(string)($finfo->file($path)?:'');
+        if(in_array($mime,$allowed,true))return $mime;
     }
-    $finfo=new finfo(FILEINFO_MIME_TYPE);
-    return (string)($finfo->file($path)?:'');
+    throw new RuntimeException('The real file type could not be verified. Use a valid JPG, PNG, WEBP, MP4, WEBM, MOV or PDF file.');
+}
+function upload_error_message(array $file,string $label='File'): string {
+    $error=(int)($file['error']??UPLOAD_ERR_NO_FILE);
+    return match($error) {
+        UPLOAD_ERR_INI_SIZE,UPLOAD_ERR_FORM_SIZE=>"{$label} exceeds the upload limit configured on this server.",
+        UPLOAD_ERR_PARTIAL=>"{$label} was only partially uploaded. Please try again.",
+        UPLOAD_ERR_NO_FILE=>"Choose a {$label} to upload.",
+        UPLOAD_ERR_NO_TMP_DIR=>"The server upload folder is unavailable.",
+        UPLOAD_ERR_CANT_WRITE=>"The server could not write the uploaded {$label}.",
+        UPLOAD_ERR_EXTENSION=>"A server extension stopped the {$label} upload.",
+        default=>"{$label} upload failed.",
+    };
+}
+function php_ini_size_bytes(string $value): int {
+    $value=trim($value);
+    if($value===''||$value==='-1')return PHP_INT_MAX;
+    $unit=strtolower(substr($value,-1));
+    $number=(float)$value;
+    return (int)round($number*match($unit){'g'=>1024**3,'m'=>1024**2,'k'=>1024,default=>1});
+}
+function effective_upload_limit_mb(int $applicationLimitMb=250): int {
+    $limits=[$applicationLimitMb*1024*1024];
+    foreach(['upload_max_filesize','post_max_size'] as $key) {
+        $bytes=php_ini_size_bytes((string)ini_get($key));
+        if($bytes>0&&$bytes<PHP_INT_MAX)$limits[]=$bytes;
+    }
+    return max(1,(int)floor(min($limits)/1024/1024));
 }
 function upload_image(array $file, string $subdir, string $prefix, int $maxMb = 8): string {
-    if (($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) throw new RuntimeException('Image upload failed.');
+    if (($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) throw new RuntimeException(upload_error_message($file,'image'));
     if (($file['size'] ?? 0) > $maxMb * 1024 * 1024) throw new RuntimeException("Image exceeds {$maxMb} MB.");
     $mime=detect_file_mime_type((string)$file['tmp_name']);
     $allowed=['image/jpeg'=>'jpg',
@@ -187,7 +232,7 @@ function upload_image(array $file, string $subdir, string $prefix, int $maxMb = 
     return 'uploads/'.trim($subdir,'/').'/'.$name;
 }
 function upload_media_file(array $file, string $subdir='media', string $prefix='media', int $maxMb = 60): string {
-    if (($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) throw new RuntimeException('Media upload failed.');
+    if (($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) throw new RuntimeException(upload_error_message($file,'media file'));
     if (($file['size'] ?? 0) > $maxMb * 1024 * 1024) throw new RuntimeException("Media file exceeds {$maxMb} MB.");
     $mime=detect_file_mime_type((string)$file['tmp_name']);
     $allowed=[ 'image/jpeg'=>'jpg',
@@ -195,8 +240,9 @@ function upload_media_file(array $file, string $subdir='media', string $prefix='
     'image/webp'=>'webp',
     'video/mp4'=>'mp4',
     'video/webm'=>'webm',
+    'video/quicktime'=>'mov',
     'application/pdf'=>'pdf' ];
-    if(!isset($allowed[$mime])) throw new RuntimeException('Allowed media: JPG, PNG, WEBP, MP4, WEBM and PDF.');
+    if(!isset($allowed[$mime])) throw new RuntimeException('Allowed media: JPG, PNG, WEBP, MP4, WEBM, MOV and PDF.');
     $dir=UPLOAD_DIR.'/'.trim($subdir,'/');
     if(!is_dir($dir)&&!mkdir($dir,0755,true)&&!is_dir($dir))throw new RuntimeException('Could not create upload directory.');
     $name=preg_replace('/[^a-z0-9_-]+/i','-',$prefix).'-'.date('YmdHis').'-'.bin2hex(random_bytes(4)).'.'.$allowed[$mime];
@@ -263,15 +309,6 @@ function validate_email_configuration(array $config): void {
     $port=(int)($config['port']??0);
     $secure=strtolower(trim((string)($config['smtp_secure']??'')));
     if(trim((string)($config['server']??''))===''||secret_decrypt($config['password']??'')===''||$port<1||$port>65535||!in_array($secure,['tls','ssl'],true))throw new RuntimeException('SMTP configuration is incomplete.');
-}
-function gallery_fallback(int $index): string {
-    $images=[ 'https://images.unsplash.com/photo-1503387762-592deb58ef4e?auto=format&fit=crop&w=1100&q=85',
-    'https://images.unsplash.com/photo-1562259949-e8e7689d7828?auto=format&fit=crop&w=900&q=85',
-    'https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?auto=format&fit=crop&w=900&q=85',
-    'https://images.unsplash.com/photo-1581858726788-75bc0f6a952d?auto=format&fit=crop&w=900&q=85',
-    'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=900&q=85',
-    'https://images.unsplash.com/photo-1590725121839-892b458a74fe?auto=format&fit=crop&w=900&q=85' ];
-    return $images[$index % count($images)];
 }
 function draft_content(): array {
     $rows=db()->query('SELECT content_key,content_value FROM content_drafts')->fetchAll();

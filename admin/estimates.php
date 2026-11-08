@@ -6,6 +6,14 @@ $me=current_admin();
 $canAll=user_can('estimates.manage_all');
 $canAssigned=user_can('estimates.manage_assigned')||$canAll;
 $error='';
+function delete_estimate_file(string $relativePath): void {
+    $relativePath=ltrim(str_replace('\\','/',$relativePath),'/');
+    if(!str_starts_with($relativePath,'uploads/'))return;
+    $fullPath=ROOT_DIR.'/'.$relativePath;
+    $uploadRoot=realpath(UPLOAD_DIR);
+    $parent=realpath(dirname($fullPath));
+    if($uploadRoot!==false&&$parent!==false&&str_starts_with($parent,$uploadRoot)&&is_file($fullPath))@unlink($fullPath);
+}
 if($_SERVER['REQUEST_METHOD']==='POST') {
     verify_csrf();
     if(!$canAssigned) {
@@ -20,7 +28,29 @@ if($_SERVER['REQUEST_METHOD']==='POST') {
         if(!$cur)throw new RuntimeException('Request not found.');
         if(!$canAll&&(int)($cur['assigned_to']??0)!==(int)$me['id'])throw new RuntimeException('This request is not assigned to you.');
         $action=(string)($_POST['action']??'update');
-        if($action==='update') {
+        if($action==='delete') {
+            if(!$canAll)throw new RuntimeException('Only administrators with full request access can delete requests.');
+            $files=[];
+            $attachmentStatement=$pdo->prepare('SELECT file_path FROM estimate_attachments WHERE estimate_id=?');
+            $attachmentStatement->execute([$id]);
+            foreach($attachmentStatement->fetchAll() as $attachment)$files[]=(string)$attachment['file_path'];
+            if(!empty($cur['photo_path']))$files[]=(string)$cur['photo_path'];
+            $pdo->beginTransaction();
+            try {
+                $pdo->prepare('DELETE FROM estimate_notes WHERE estimate_id=?')->execute([$id]);
+                $pdo->prepare('DELETE FROM estimate_attachments WHERE estimate_id=?')->execute([$id]);
+                $pdo->prepare('DELETE FROM estimate_requests WHERE id=?')->execute([$id]);
+                $pdo->commit();
+            } catch(Throwable $deleteError) {
+                if($pdo->inTransaction())$pdo->rollBack();
+                throw $deleteError;
+            }
+            foreach(array_unique($files) as $file)delete_estimate_file($file);
+            log_activity('estimate_delete','Deleted estimate request',['estimate_id'=>$id]);
+            flash('success','Estimate request deleted.');
+            header('Location: estimates.php');
+            exit;
+        } elseif($action==='update') {
             $status=(string)($_POST['status']??'new');
             $priority=(string)($_POST['priority']??'normal');
             $follow=trim((string)($_POST['follow_up_date']??''))?:null;
@@ -55,6 +85,12 @@ if(!empty($_GET['status'])) {
 }
 if(($_GET['follow']??'')==='due') {
     $where[]='e.follow_up_date IS NOT NULL AND e.follow_up_date<=CURDATE()';
+}
+$search=trim((string)($_GET['q']??''));
+if($search!=='') {
+    $where[]='(e.full_name LIKE ? OR e.email LIKE ? OR e.phone LIKE ? OR e.address LIKE ? OR e.service_needed LIKE ? OR e.message LIKE ?)';
+    $needle='%'.$search.'%';
+    array_push($args,$needle,$needle,$needle,$needle,$needle,$needle);
 }
 $sql='SELECT e.*,u.full_name assigned_name,u.username assigned_username FROM estimate_requests e LEFT JOIN admin_users u ON u.id=e.assigned_to'.($where?' WHERE '.implode(' AND ',$where):'').' ORDER BY CASE e.priority WHEN "urgent" THEN 0 WHEN "high" THEN 1 WHEN "normal" THEN 2 ELSE 3 END,e.id DESC';
 $st=$pdo->prepare($sql);
@@ -106,6 +142,20 @@ if($error):
 </div><?php
 endif;
 ?>
+
+<form method="get" class="request-search panel compact-panel" role="search">
+    <label>
+        <span>Search requests</span>
+        <input type="search" name="q" value="<?=h($search)?>" placeholder="Name, email, phone, address, service or message">
+    </label>
+    <?php if(!empty($_GET['status'])): ?><input type="hidden" name="status" value="<?=h((string)$_GET['status'])?>"><?php endif; ?>
+    <?php if(($_GET['follow']??'')==='due'): ?><input type="hidden" name="follow" value="due"><?php endif; ?>
+    <div class="form-actions">
+        <button type="submit">Search</button>
+        <?php if($search!==''): ?><a class="button secondary" href="estimates.php">Clear</a><?php endif; ?>
+        <small><?=count($rows)?> result<?=count($rows)===1?'':'s'?></small>
+    </div>
+</form>
 <?php
 if($view):
 ?>
@@ -268,6 +318,14 @@ endif;
 <a class="button secondary" href="estimates.php">Back</a>
 </div>
 </form>
+<?php if($canAll): ?>
+<form method="post" class="estimate-delete-form" data-swal-confirm="Delete this estimate request?" data-swal-text="The request, private notes and attached files will be permanently removed.">
+    <input type="hidden" name="csrf" value="<?=h(csrf_token())?>">
+    <input type="hidden" name="id" value="<?=$view['id']?>">
+    <input type="hidden" name="action" value="delete">
+    <button class="button danger" type="submit">Delete request</button>
+</form>
+<?php endif; ?>
 <section class="estimate-notes">
 <div class="section-heading">
 <div>
@@ -361,6 +419,14 @@ endif;
 </div>
 <div class="actions">
 <a class="button secondary small" href="?view=<?=$r['id']?>">Open request</a>
+<?php if($canAll): ?>
+<form method="post" data-swal-confirm="Delete this estimate request?" data-swal-text="The request and its attachments will be permanently removed.">
+    <input type="hidden" name="csrf" value="<?=h(csrf_token())?>">
+    <input type="hidden" name="id" value="<?=$r['id']?>">
+    <input type="hidden" name="action" value="delete">
+    <button class="button danger small" type="submit">Delete</button>
+</form>
+<?php endif; ?>
 </div>
 </article><?php
 endforeach;

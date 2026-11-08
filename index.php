@@ -7,6 +7,7 @@ if($adminPreviewRequested&&!empty($_COOKIE[CASTROS_READY_ADMIN_SESSION_NAME])) {
 }
 require __DIR__.'/config/bootstrap.php';
 require_once __DIR__.'/core/PublicFormProtection.php';
+require_once __DIR__.'/core/VisitTracker.php';
 if (!headers_sent()) {
     header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
     header('Pragma: no-cache');
@@ -20,7 +21,7 @@ try {
     $content=site_content();
     $settings=settings();
     $services=db()->query('SELECT * FROM services WHERE active=1 ORDER BY sort_order,id')->fetchAll();
-    $gallery=db()->query('SELECT * FROM gallery WHERE active=1 ORDER BY sort_order,id')->fetchAll();
+    $gallery=db()->query("SELECT * FROM gallery WHERE active=1 AND image_path IS NOT NULL AND image_path<>'' ORDER BY sort_order,id")->fetchAll();
     $videos=[];
     try { $videos=db()->query('SELECT * FROM videos WHERE active=1 ORDER BY sort_order,id')->fetchAll(); } catch(Throwable $ignored) { $videos=[]; }
     $aboutArtworks=[];
@@ -105,11 +106,41 @@ function public_video_embed(array $video): string {
 }
 $phone=$settings['phone']??'+1 202-644-2717';
 $digits=preg_replace('/\D+/','',$settings['phone_digits']??'12026442717');
+$whatsappDigits=preg_replace('/\D+/','',$settings['whatsapp_number']??$digits);
 $email=$settings['email']??'castrosreadycompany@gmail.com';
+$siteLogo=trim((string)($settings['site_logo_path']??'assets/logo.jpg'))?:'assets/logo.jpg';
+$heroImage=trim((string)($settings['hero_image_path']??'https://images.unsplash.com/photo-1504307651254-35680f356dfd?auto=format&fit=crop&w=1200&q=88'));
+$heroImageAlt=trim((string)($settings['hero_image_alt']??"Castro's Ready construction project"));
+$heroImagePosition=trim((string)($settings['hero_image_position']??'center'));
+$aboutImage=trim((string)($settings['about_image_path']??'https://images.unsplash.com/photo-1531835551805-16d864c8d311?auto=format&fit=crop&w=1100&q=85'));
+$aboutImageAlt=trim((string)($settings['about_image_alt']??'Comfortable finished home interior'));
+$aboutImagePosition=trim((string)($settings['about_image_position']??'center'));
 $turnstileSiteKey=PublicFormProtection::turnstileSiteKey();
 $favicon=$settings['favicon_path']??'assets/logo.jpg';
 $maintenance=($settings['maintenance_mode']??'0')==='1';
 $adminPreview=$adminSessionIsCurrent&&($_GET['preview']??'')==='1';
+if(!$adminPreview&&!$draftPreview)VisitTracker::record(db());
+$requestScheme=(!empty($_SERVER['HTTPS'])&&strtolower((string)$_SERVER['HTTPS'])!=='off')?'https':'http';
+$requestHost=preg_replace('/[^A-Za-z0-9.:-]/','',(string)($_SERVER['HTTP_HOST']??'castrosready.us'));
+$defaultCanonical=$requestScheme.'://'.$requestHost.'/';
+$canonicalUrl=trim((string)($settings['seo_canonical_url']??''))?:$defaultCanonical;
+if(filter_var($canonicalUrl,FILTER_VALIDATE_URL)===false)$canonicalUrl=$defaultCanonical;
+$socialImage=trim((string)($settings['seo_social_image']??''));
+if($socialImage!==''&&!preg_match('~^https?://~i',$socialImage))$socialImage=rtrim($canonicalUrl,'/').'/'.ltrim($socialImage,'/');
+$seoTitle=$settings['seo_title']??"Castro's Ready | Home Improvement";
+$seoDescription=$settings['seo_description']??'Professional home improvement services.';
+$structuredData=[
+    '@context'=>'https://schema.org',
+    '@type'=>$settings['seo_business_type']??'HomeAndConstructionBusiness',
+    'name'=>$settings['seo_site_name']??"Castro's Ready",
+    'url'=>$canonicalUrl,
+    'logo'=>rtrim($canonicalUrl,'/').'/'.ltrim($siteLogo,'/'),
+    'telephone'=>$phone,
+    'email'=>$email,
+    'areaServed'=>$settings['seo_area_served']??'Elkridge, Maryland and surrounding areas',
+    'description'=>$seoDescription,
+];
+if($socialImage!=='')$structuredData['image']=$socialImage;
 if($maintenance&&!$adminPreview) {
     $mt=$settings['maintenance_title']??'We are improving our website.';
     $mx=$settings['maintenance_text']??'We will be back shortly.';
@@ -212,7 +243,7 @@ p {
 <body>
 <main class="m">
 <section class="c">
-<img class="brand" src="assets/logo.jpg" alt="Castro's Ready"><?php
+<img class="brand" src="<?=h($siteLogo)?>" alt="Castro's Ready"><?php
 if($mi!==''):
 ?>
 
@@ -282,11 +313,11 @@ $renderBanner=function() use($bannerEnabled,$bannerType,$bannerImage,$bannerVide
     echo '</div></section>';
 }
 ;
-$renderNav=function() use($navBehavior,$navLogo,$navAlign,$videos) {
+$renderNav=function() use($navBehavior,$navLogo,$navAlign,$videos,$siteLogo) {
     echo '<header class="site-header nav-'.h($navBehavior).' '.(!$navLogo?'no-brand ':'').'align-'.h($navAlign).'" id="top"><div class="container nav-wrap">';
-    if($navLogo)echo '<a class="brand" href="#home" data-scroll><img src="assets/logo.jpg" alt="Castro\'s Ready logo"><span class="brand-copy"><strong>CASTRO\'S READY</strong><small>PAINTING · REPAIRS · MAINTENANCE</small></span></a>';
-    $videoLink=!empty($videos)?'<a href="#videos" data-scroll>Videos</a>':'';
-    echo '<button class="menu-btn" type="button" aria-label="Open menu" aria-expanded="false">☰</button><nav class="main-nav"><a href="#home" data-scroll>Home</a><a href="#about" data-scroll>About</a><a href="#services" data-scroll>Services</a>'.$videoLink.'<a href="#gallery" data-scroll>Gallery</a><a href="#areas" data-scroll>Service Areas</a><a href="#contact" data-scroll>Contact</a><a class="nav-cta" href="#estimate" data-scroll>Free Estimate</a></nav></div><div class="scroll-progress"><span></span></div></header>';
+    if($navLogo)echo '<a class="brand" href="#home" data-scroll><img src="'.h($siteLogo).'" alt="'.h(c('brand_name',"Castro's Ready")).' logo"><span class="brand-copy"><strong>'.h(c('brand_name',"CASTRO'S READY")).'</strong><small>'.h(c('brand_tagline','PAINTING · REPAIRS · MAINTENANCE')).'</small></span></a>';
+    $videoLink=!empty($videos)?'<a href="#videos" data-scroll>'.h(c('nav_videos','Videos')).'</a>':'';
+    echo '<button class="menu-btn" type="button" aria-label="Open menu" aria-expanded="false">☰</button><nav class="main-nav"><a href="#home" data-scroll>'.h(c('nav_home','Home')).'</a><a href="#about" data-scroll>'.h(c('nav_about','About')).'</a><a href="#services" data-scroll>'.h(c('nav_services','Services')).'</a>'.$videoLink.'<a href="#gallery" data-scroll>'.h(c('nav_gallery','Gallery')).'</a><a href="#areas" data-scroll>'.h(c('nav_areas','Service Areas')).'</a><a href="#contact" data-scroll>'.h(c('nav_contact','Contact')).'</a><a class="nav-cta" href="#estimate" data-scroll>'.h(c('nav_estimate','Free Estimate')).'</a></nav></div><div class="scroll-progress"><span></span></div></header>';
 }
 ;
 ?>
@@ -296,18 +327,27 @@ $renderNav=function() use($navBehavior,$navLogo,$navAlign,$videos) {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="description" content="<?=h($settings['seo_description']??'Professional home improvement services.')?>">
+<meta name="description" content="<?=h($seoDescription)?>">
 <meta name="robots" content="<?=h($settings['seo_robots']??'index,follow')?>">
-<meta property="og:title" content="<?=h($settings['seo_title']??"Castro's Ready | Home Improvement")?>">
-<meta property="og:description" content="<?=h($settings['seo_description']??'Professional home improvement services.')?>"><?php
-if(!empty($settings['seo_social_image'])):
+<link rel="canonical" href="<?=h($canonicalUrl)?>">
+<meta property="og:type" content="website">
+<meta property="og:url" content="<?=h($canonicalUrl)?>">
+<meta property="og:site_name" content="<?=h($settings['seo_site_name']??"Castro's Ready")?>">
+<meta property="og:title" content="<?=h($seoTitle)?>">
+<meta property="og:description" content="<?=h($seoDescription)?>">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="<?=h($seoTitle)?>">
+<meta name="twitter:description" content="<?=h($seoDescription)?>"><?php
+if($socialImage!==''):
 ?>
 
-<meta property="og:image" content="<?=h($settings['seo_social_image'])?>"><?php
+<meta property="og:image" content="<?=h($socialImage)?>">
+<meta name="twitter:image" content="<?=h($socialImage)?>"><?php
 endif;
 ?>
 
-<title><?=h($settings['seo_title']??"Castro's Ready | Home Improvement")?>
+<script type="application/ld+json"><?=json_encode($structuredData,JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE|JSON_HEX_TAG|JSON_HEX_AMP)?></script>
+<title><?=h($seoTitle)?>
 
 </title>
 <link rel="icon" href="<?=h($favicon)?>">
@@ -385,21 +425,22 @@ if(section_enabled('home')):
 
 </p>
 <div class="hero-actions">
-<a class="btn btn-primary" href="#estimate" data-scroll>Request a Free Estimate</a>
-<a class="btn btn-secondary" href="tel:<?=$digits?>">Call <?=h($phone)?>
+<a class="btn btn-primary" href="#estimate" data-scroll><?=h(c('hero_primary_button','Request a Free Estimate'))?></a>
+<a class="btn btn-secondary" href="tel:<?=$digits?>"><?=h(c('hero_secondary_button','Call'))?> <?=h($phone)?>
 
 </a>
 </div>
 <div class="trust-row">
-<span>Reliable service</span>
-<span>Quality workmanship</span>
-<span>Home-focused care</span>
+<span><?=h(c('hero_trust_1','Reliable service'))?></span>
+<span><?=h(c('hero_trust_2','Quality workmanship'))?></span>
+<span><?=h(c('hero_trust_3','Home-focused care'))?></span>
 </div>
 </div>
 <div class="hero-visual reveal">
+<?php if($heroImage!==''): ?><img class="section-cover-image" src="<?=h($heroImage)?>" alt="<?=h($heroImageAlt)?>" style="object-position:<?=h($heroImagePosition)?>" fetchpriority="high"><?php endif; ?>
 <div class="hero-badge">
-<strong>One trusted team.</strong>
-<span>From touch-ups to full transformations.</span>
+<strong><?=h(c('hero_badge_title','One trusted team.'))?></strong>
+<span><?=h(c('hero_badge_text','From touch-ups to full transformations.'))?></span>
 </div>
 </div>
 </div>
@@ -414,7 +455,7 @@ if(section_enabled('intro')):
 <section class="intro-strip" style="order:<?=section_order('intro')?>">
 <div class="container intro-grid reveal">
 <div>
-<span class="kicker">WHAT WE DO</span>
+<span class="kicker" data-content-key="intro_kicker"><?=h(c('intro_kicker','WHAT WE DO'))?></span>
 <h2 data-content-key="intro_title"><?=h(c('intro_title'))?>
 
 </h2>
@@ -435,14 +476,15 @@ if(section_enabled('about')):
 <div class="container about-grid">
 <div class="photo-stack reveal">
 <div class="photo photo-main">
+<?php if($aboutImage!==''): ?><img class="section-cover-image" src="<?=h($aboutImage)?>" alt="<?=h($aboutImageAlt)?>" style="object-position:<?=h($aboutImagePosition)?>" loading="lazy"><?php endif; ?>
 </div>
 <div class="photo-note">
-<span>Built around one standard</span>
-<strong>Do the work right.</strong>
+<span data-content-key="about_note_kicker"><?=h(c('about_note_kicker','Built around one standard'))?></span>
+<strong data-content-key="about_note_title"><?=h(c('about_note_title','Do the work right.'))?></strong>
 </div>
 </div>
 <div class="section-copy reveal">
-<span class="kicker">ABOUT CASTRO'S READY</span>
+<span class="kicker" data-content-key="about_kicker"><?=h(c('about_kicker',"ABOUT CASTRO'S READY"))?></span>
 <h2 data-content-key="about_title"><?=h(c('about_title'))?>
 
 </h2>
@@ -464,17 +506,14 @@ if(section_enabled('about')):
 <p class="visually-hidden" data-content-key="vision"><?=h(c('vision'))?></p>
 <?php else: ?>
 <div class="mission-grid mission-text-fallback">
-<article><span>Mission</span><p data-content-key="mission"><?=h(c('mission'))?></p></article>
-<article><span>Vision</span><p data-content-key="vision"><?=h(c('vision'))?></p></article>
+<article><span data-content-key="mission_label"><?=h(c('mission_label','Mission'))?></span><p data-content-key="mission"><?=h(c('mission'))?></p></article>
+<article><span data-content-key="vision_label"><?=h(c('vision_label','Vision'))?></span><p data-content-key="vision"><?=h(c('vision'))?></p></article>
 </div>
 <?php endif; ?>
 <div class="values">
-<span>Integrity</span>
-<span>Respect</span>
-<span>Quality</span>
-<span>Reliability</span>
-<span>Accountability</span>
-<span>Customer Focus</span>
+<?php foreach(range(1,6) as $valueIndex): $valueText=c('about_value_'.$valueIndex,['Integrity','Respect','Quality','Reliability','Accountability','Customer Focus'][$valueIndex-1]); if(trim($valueText)==='')continue; ?>
+<span data-content-key="about_value_<?=$valueIndex?>"><?=h($valueText)?></span>
+<?php endforeach; ?>
 </div>
 </div>
 </div>
@@ -490,10 +529,10 @@ if(section_enabled('services')):
 <div class="container">
 <div class="section-head reveal">
 <div>
-<span class="kicker">OUR SERVICES</span>
-<h2>From maintenance to complete transformations.</h2>
+<span class="kicker" data-content-key="services_kicker"><?=h(c('services_kicker','OUR SERVICES'))?></span>
+<h2 data-content-key="services_title"><?=h(c('services_title','From maintenance to complete transformations.'))?></h2>
 </div>
-<p>Select a category to explore the work Castro's Ready can help with.</p>
+<p data-content-key="services_text"><?=h(c('services_text',"Select a category to explore the work Castro's Ready can help with."))?></p>
 </div>
 <div class="services-grid reveal"><?php
 foreach($services as $i=>$s):
@@ -530,8 +569,8 @@ if(section_enabled('videos')&&!empty($videos)):
 <section class="section video-section section-anchor" id="videos" style="order:<?=section_order('videos')?>">
 <div class="container">
 <div class="section-head reveal">
-<div><span class="kicker">SEE OUR WORK</span><h2>Watch the craftsmanship behind the finished result.</h2></div>
-<p>Real project videos, presented in a clean and consistent showcase.</p>
+<div><span class="kicker" data-content-key="videos_kicker"><?=h(c('videos_kicker','SEE OUR WORK'))?></span><h2 data-content-key="videos_title"><?=h(c('videos_title','Watch the craftsmanship behind the finished result.'))?></h2></div>
+<p data-content-key="videos_text"><?=h(c('videos_text','Real project videos, presented in a clean and consistent showcase.'))?></p>
 </div>
 <div class="video-grid reveal">
 <?php foreach($videos as $video): $embed=public_video_embed($video); ?>
@@ -559,13 +598,13 @@ if(section_enabled('gallery')):
 <div class="container">
 <div class="section-head reveal">
 <div>
-<span class="kicker">PROJECT GALLERY</span>
-<h2>Craftsmanship is easier to trust when you can see it.</h2>
+<span class="kicker" data-content-key="gallery_kicker"><?=h(c('gallery_kicker','PROJECT GALLERY'))?></span>
+<h2 data-content-key="gallery_title"><?=h(c('gallery_title','Craftsmanship is easier to trust when you can see it.'))?></h2>
 </div>
-<a class="text-link" href="#estimate" data-scroll>Start your project →</a>
+<a class="text-link" href="#estimate" data-scroll><?=h(c('gallery_cta','Start your project'))?> →</a>
 </div>
 <div class="gallery-grid reveal"><?php
-foreach($gallery as $i=>$g):$img=$g['image_path']?:gallery_fallback($i);
+foreach($gallery as $i=>$g):$img=$g['image_path'];
 ?>
 
 <article class="gallery-card g<?=($i%6)+1?>" style="background-image:url('<?=h($img)?>')">
@@ -592,7 +631,7 @@ if(section_enabled('areas')):
 <section class="section areas-section section-anchor" id="areas" style="order:<?=section_order('areas')?>">
 <div class="container areas-grid">
 <div class="reveal">
-<span class="kicker">SERVICE AREAS</span>
+<span class="kicker" data-content-key="areas_kicker"><?=h(c('areas_kicker','SERVICE AREAS'))?></span>
 <h2 data-content-key="areas_title"><?=h(c('areas_title'))?>
 
 </h2>
@@ -615,7 +654,7 @@ endif;
 ?>
 
 </div>
-<a class="btn btn-secondary" href="tel:<?=$digits?>">Ask if we serve your area</a>
+<a class="btn btn-secondary" href="tel:<?=$digits?>"><?=h(c('areas_button','Ask if we serve your area'))?></a>
 </div>
 <?php
 $serviceMapEnabled=($settings['service_map_enabled']??'1')==='1';
@@ -658,10 +697,10 @@ if(section_enabled('tips')):
 <div class="container">
 <div class="section-head reveal">
 <div>
-<span class="kicker">HOME IMPROVEMENT TIPS</span>
-<h2>Useful advice for protecting your home.</h2>
+<span class="kicker" data-content-key="tips_kicker"><?=h(c('tips_kicker','HOME IMPROVEMENT TIPS'))?></span>
+<h2 data-content-key="tips_title"><?=h(c('tips_title','Useful advice for protecting your home.'))?></h2>
 </div>
-<p>Practical guidance for keeping your property looking and performing its best.</p>
+<p data-content-key="tips_text"><?=h(c('tips_text','Practical guidance for keeping your property looking and performing its best.'))?></p>
 </div>
 <div class="tips-grid reveal"><?php
 foreach($tips as $i=>$tip):
@@ -674,7 +713,7 @@ foreach($tips as $i=>$tip):
 <h3><?=h($tip['title'])?>
 
 </h3>
-<a href="<?=h($tip['url']?:'#')?>">Read guide →</a>
+<a href="<?=h($tip['url']?:'#')?>"><?=h(c('tips_link_label','Read guide'))?> →</a>
 </article><?php
 endforeach;
 ?>
@@ -692,7 +731,7 @@ if(section_enabled('estimate')):
 <section class="section estimate-section section-anchor" id="estimate" style="order:<?=section_order('estimate')?>">
 <div class="container estimate-grid">
 <div class="estimate-copy reveal">
-<span class="kicker">FREE ESTIMATE</span>
+<span class="kicker" data-content-key="estimate_kicker"><?=h(c('estimate_kicker','FREE ESTIMATE'))?></span>
 <h2 data-content-key="estimate_title"><?=h(c('estimate_title'))?>
 
 </h2>
@@ -701,13 +740,13 @@ if(section_enabled('estimate')):
 </p>
 <div class="estimate-contact">
 <a href="tel:<?=$digits?>">
-<b>Call</b>
+<b data-content-key="estimate_call_label"><?=h(c('estimate_call_label','Call'))?></b>
 <span><?=h($phone)?>
 
 </span>
 </a>
 <a href="mailto:<?=h($email)?>">
-<b>Email</b>
+<b data-content-key="estimate_email_label"><?=h(c('estimate_email_label','Email'))?></b>
 <span><?=h($email)?>
 
 </span>
@@ -720,22 +759,22 @@ if(section_enabled('estimate')):
 </label>
 </div>
 <div class="field-row">
-<label>Full Name<input type="text" name="name" placeholder="Your name">
+<label><span data-content-key="form_name_label"><?=h(c('form_name_label','Full Name'))?></span><input type="text" name="name" placeholder="<?=h(c('form_name_placeholder','Your name'))?>">
 </label>
-<label>Phone<input type="tel" name="phone" placeholder="(000) 000-0000">
+<label><span data-content-key="form_phone_label"><?=h(c('form_phone_label','Phone'))?></span><input type="tel" name="phone" placeholder="<?=h(c('form_phone_placeholder','(000) 000-0000'))?>">
 </label>
 </div>
 <div class="field-row">
-<label>Email<input type="email" name="email" placeholder="you@email.com" autocomplete="email" aria-describedby="estimateEmailStatus">
+<label><span data-content-key="form_email_label"><?=h(c('form_email_label','Email'))?></span><input type="email" name="email" placeholder="<?=h(c('form_email_placeholder','you@email.com'))?>" autocomplete="email" aria-describedby="estimateEmailStatus">
 <span class="email-validation-status" id="estimateEmailStatus" data-email-status aria-live="polite"></span>
 </label>
-<label>Desired Date<input type="date" name="date">
+<label><span data-content-key="form_date_label"><?=h(c('form_date_label','Desired Date'))?></span><input type="date" name="date">
 </label>
 </div>
-<label>Address<input type="text" name="address" placeholder="Project address">
+<label><span data-content-key="form_address_label"><?=h(c('form_address_label','Address'))?></span><input type="text" name="address" placeholder="<?=h(c('form_address_placeholder','Project address'))?>">
 </label>
-<label>Service Needed<select name="service">
-<option value="">Select a service</option><?php
+<label><span data-content-key="form_service_label"><?=h(c('form_service_label','Service Needed'))?></span><select name="service">
+<option value=""><?=h(c('form_service_placeholder','Select a service'))?></option><?php
 foreach($services as $s):
 ?>
 
@@ -747,14 +786,14 @@ endforeach;
 
 </select>
 </label>
-<label>Tell us about your project<textarea name="message" rows="4" placeholder="A short description is enough to get started.">
+<label><span data-content-key="form_message_label"><?=h(c('form_message_label','Tell us about your project'))?></span><textarea name="message" rows="4" placeholder="<?=h(c('form_message_placeholder','A short description is enough to get started.'))?>">
 </textarea>
 </label>
 <div class="public-upload" data-public-upload tabindex="0">
 <div class="public-upload-icon">＋</div>
-<strong>Add project photos</strong>
-<span>Drag & drop, paste from clipboard, or choose files</span>
-<small>Optional · JPG, PNG or WebP · up to 8 images</small>
+<strong data-content-key="form_upload_title"><?=h(c('form_upload_title','Add project photos'))?></strong>
+<span data-content-key="form_upload_text"><?=h(c('form_upload_text','Drag & drop, paste from clipboard, or choose files'))?></span>
+<small data-content-key="form_upload_note"><?=h(c('form_upload_note','Optional · JPG, PNG or WebP · up to 8 images'))?></small>
 <input type="file" name="photos[]" accept="image/jpeg,image/png,image/webp" multiple>
 <div class="public-upload-preview" data-public-upload-preview>
 </div>
@@ -764,11 +803,11 @@ endforeach;
 <div class="cf-turnstile" data-sitekey="<?=h($turnstileSiteKey)?>" data-theme="light"></div>
 </div>
 <?php endif; ?>
-<button type="submit" class="btn btn-primary btn-full">Send Free Estimate Request</button>
-<a class="whatsapp-btn" target="_blank" rel="noopener" href="https://wa.me/<?=$digits?>
+<button type="submit" class="btn btn-primary btn-full"><?=h(c('form_submit_label','Send Free Estimate Request'))?></button>
+<a class="whatsapp-btn" target="_blank" rel="noopener" href="https://wa.me/<?=$whatsappDigits?>
 
-?text=Hello%2C%20I%20just%20submitted%20a%20free%20estimate%20request%20on%20your%20website.%20I%20would%20like%20to%20receive%20more%20information%20about%20my%20project.">Continue on WhatsApp</a>
-<p class="form-note">You can submit the form even if you do not attach a photo.</p>
+?text=<?=rawurlencode($settings['whatsapp_message']??"Hello, I would like more information about Castro's Ready services.")?>"><?=h(c('form_whatsapp_label','Continue on WhatsApp'))?></a>
+<p class="form-note" data-content-key="form_note"><?=h(c('form_note','You can submit the form even if you do not attach a photo.'))?></p>
 </form>
 </div>
 </section>
@@ -782,55 +821,55 @@ if(section_enabled('contact')):
 <section class="section contact-section section-anchor" id="contact" style="order:<?=section_order('contact')?>">
 <div class="container contact-grid">
 <div class="reveal contact-intro">
-<span class="kicker">CONTACT</span>
+<span class="kicker" data-content-key="contact_kicker"><?=h(c('contact_kicker','CONTACT'))?></span>
 <h2 data-content-key="contact_title"><?=h(c('contact_title'))?>
 
 </h2>
-<p>Choose the easiest way to reach Castro's Ready.</p>
+<p data-content-key="contact_text"><?=h(c('contact_text',"Choose the easiest way to reach Castro's Ready."))?></p>
 <div class="contact-accent">
 <span>
 </span>
-<b>Fast, direct, professional contact.</b>
+<b data-content-key="contact_accent"><?=h(c('contact_accent','Fast, direct, professional contact.'))?></b>
 </div>
 </div>
 <div class="contact-links reveal">
 <a class="contact-card" href="tel:<?=$digits?>">
 <i class="contact-icon">☎</i>
 <div>
-<span>Phone</span>
+<span data-content-key="contact_phone_label"><?=h(c('contact_phone_label','Phone'))?></span>
 <strong><?=h($phone)?>
 
 </strong>
-<small>Call our team directly</small>
+<small data-content-key="contact_phone_note"><?=h(c('contact_phone_note','Call our team directly'))?></small>
 </div>
 <b class="contact-arrow">→</b>
 </a>
-<a class="contact-card" target="_blank" rel="noopener" href="https://wa.me/<?=$digits?>">
+<a class="contact-card" target="_blank" rel="noopener" href="https://wa.me/<?=$whatsappDigits?>">
 <i class="contact-icon">WA</i>
 <div>
-<span>WhatsApp</span>
-<strong>Start a conversation</strong>
-<small>Quick project questions</small>
+<span data-content-key="contact_whatsapp_label"><?=h(c('contact_whatsapp_label','WhatsApp'))?></span>
+<strong data-content-key="contact_whatsapp_title"><?=h(c('contact_whatsapp_title','Start a conversation'))?></strong>
+<small data-content-key="contact_whatsapp_note"><?=h(c('contact_whatsapp_note','Quick project questions'))?></small>
 </div>
 <b class="contact-arrow">→</b>
 </a>
 <a class="contact-card" href="mailto:<?=h($email)?>">
 <i class="contact-icon">✉</i>
 <div>
-<span>Email</span>
+<span data-content-key="contact_email_label"><?=h(c('contact_email_label','Email'))?></span>
 <strong><?=h($email)?>
 
 </strong>
-<small>Send project information</small>
+<small data-content-key="contact_email_note"><?=h(c('contact_email_note','Send project information'))?></small>
 </div>
 <b class="contact-arrow">→</b>
 </a>
 <a class="contact-card" target="_blank" rel="noopener" href="<?=h($settings['youtube']??'#')?>">
 <i class="contact-icon">▶</i>
 <div>
-<span>YouTube</span>
-<strong>@CastrosReady</strong>
-<small>See more of our work</small>
+<span data-content-key="contact_youtube_label"><?=h(c('contact_youtube_label','YouTube'))?></span>
+<strong data-content-key="contact_youtube_title"><?=h(c('contact_youtube_title','@CastrosReady'))?></strong>
+<small data-content-key="contact_youtube_note"><?=h(c('contact_youtube_note','See more of our work'))?></small>
 </div>
 <b class="contact-arrow">→</b>
 </a>
@@ -841,36 +880,36 @@ endif;
 ?>
 
 </main>
-<footer>
+<footer id="site-footer">
 <div class="container footer-grid">
 <div class="footer-brand">
-<img src="assets/logo.jpg" alt="Castro's Ready logo">
+<img src="<?=h($siteLogo)?>" alt="Castro's Ready logo">
 <div>
-<strong>CASTRO'S READY</strong>
-<span>Painting · Repairs · Maintenance</span>
+<strong data-content-key="brand_name"><?=h(c('brand_name',"CASTRO'S READY"))?></strong>
+<span data-content-key="brand_tagline"><?=h(c('brand_tagline','Painting · Repairs · Maintenance'))?></span>
 </div>
 </div>
 <div>
-<strong>Explore</strong>
-<a href="#about" data-scroll>About</a>
-<a href="#services" data-scroll>Services</a>
-<?php if(!empty($videos)): ?><a href="#videos" data-scroll>Videos</a><?php endif; ?>
-<a href="#gallery" data-scroll>Gallery</a>
+<strong data-content-key="footer_explore_title"><?=h(c('footer_explore_title','Explore'))?></strong>
+<a href="#about" data-scroll><?=h(c('nav_about','About'))?></a>
+<a href="#services" data-scroll><?=h(c('nav_services','Services'))?></a>
+<?php if(!empty($videos)): ?><a href="#videos" data-scroll><?=h(c('nav_videos','Videos'))?></a><?php endif; ?>
+<a href="#gallery" data-scroll><?=h(c('nav_gallery','Gallery'))?></a>
 </div>
 <div>
-<strong>Contact</strong>
+<strong data-content-key="footer_contact_title"><?=h(c('footer_contact_title','Contact'))?></strong>
 <a href="tel:<?=$digits?>"><?=h($phone)?>
 
 </a>
-<a href="mailto:<?=h($email)?>">Email us</a>
-<a href="#estimate" data-scroll>Free Estimate</a>
+<a href="mailto:<?=h($email)?>"><?=h(c('footer_email_label','Email us'))?></a>
+<a href="#estimate" data-scroll><?=h(c('footer_estimate_label','Free Estimate'))?></a>
 </div>
 <div>
-<strong>Website</strong>
+<strong data-content-key="footer_website_title"><?=h(c('footer_website_title','Website'))?></strong>
 <span><?=h($settings['website']??'castrosready.us')?>
 
 </span>
-<span>© 2026 Castro's Ready</span>
+<span data-content-key="footer_copyright"><?=h(c('footer_copyright',"© 2026 Castro's Ready"))?></span>
 </div>
 </div><?php
 if(($settings['developer_credit_enabled']??'0')==='1'):
@@ -895,7 +934,7 @@ endif;
 if(($settings['whatsapp_enabled']??'1')==='1'):
 ?>
 
-<a class="floating-whatsapp <?=($settings['whatsapp_position']??'right')==='left'?'left':''?>" href="https://wa.me/<?=$digits?>
+<a class="floating-whatsapp <?=($settings['whatsapp_position']??'right')==='left'?'left':''?>" href="https://wa.me/<?=$whatsappDigits?>
 
 ?text=<?=rawurlencode($settings['whatsapp_message']??"Hello, I would like more information about Castro's Ready services.")?>" target="_blank" rel="noopener" aria-label="Contact Castro's Ready on WhatsApp">
 <span>WA</span>

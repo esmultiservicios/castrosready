@@ -84,9 +84,10 @@ foreach($rows as $r):
 <small><?=h($r['url'])?>
 </small>
 </div>
-<span class="badge <?=$r['active']?'contacted':'closed'?>
-"><?=$r['active']?'Published':'Hidden'?>
-</span>
+<div class="tip-order-status">
+<span class="badge normal">Order <?=h((string)$r['sort_order'])?></span>
+<span class="badge <?=$r['active']?'contacted':'closed'?>"><?=$r['active']?'Published':'Hidden'?></span>
+</div>
 </div>
 <div class="actions">
 <a class="button secondary small" href="?edit=<?=$r['id']?>

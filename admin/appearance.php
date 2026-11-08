@@ -260,11 +260,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
 
             if (!empty($_FILES['banner_video']['name'])) {
-                $path = upload_media_file($_FILES['banner_video'], 'appearance', 'banner-video', 60);
+                $path = upload_media_file($_FILES['banner_video'], 'appearance', 'banner-video', 250);
                 $mime = detect_file_mime_type(ROOT_DIR . '/' . $path);
 
                 if (!str_starts_with($mime, 'video/')) {
-                    throw new RuntimeException('Banner video must be MP4 or WEBM.');
+                    throw new RuntimeException('Banner video must be MP4, WEBM or MOV.');
                 }
 
                 save_setting('banner_video_path', $path);
@@ -349,6 +349,7 @@ require __DIR__ . '/_header.php';
 $bannerImage = trim((string) ($set['banner_image_path'] ?? ''));
 $currentBannerImage = $bannerImage !== '' ? $bannerImage : 'assets/hero-banner.png';
 $currentBannerVideo = trim((string) ($set['banner_video_path'] ?? ''));
+$bannerUploadLimit = effective_upload_limit_mb(250);
 $currentEmbed = trim((string) ($set['banner_embed_url'] ?? ''));
 $currentPreset = (string) ($set['design_preset'] ?? 'castros');
 
@@ -636,7 +637,7 @@ $previewColors = [
                 </div>
             </div>
 
-            <form method="post" enctype="multipart/form-data" class="appearance-form" data-unsaved-form>
+            <form method="post" enctype="multipart/form-data" class="appearance-form" data-unsaved-form data-banner-form data-current-banner-image="../<?=h($currentBannerImage)?>" data-current-banner-video="<?=h($currentBannerVideo!==''?'../'.$currentBannerVideo:'')?>">
                 <input type="hidden" name="csrf" value="<?= h(csrf_token()) ?>">
                 <input type="hidden" name="action" value="header">
 
@@ -740,10 +741,11 @@ $previewColors = [
                         <div class="upload-zone" data-upload-zone tabindex="0">
                             <div class="upload-icon">▶</div>
                             <strong>Banner video</strong>
-                            <small data-upload-name>Choose MP4 or WEBM · up to 60 MB</small>
-                            <input type="file" name="banner_video" accept="video/mp4,video/webm">
+                            <small data-upload-name>Choose MP4, WEBM or MOV · server limit <?= h((string)$bannerUploadLimit) ?> MB</small>
+                            <input type="file" name="banner_video" accept="video/mp4,video/webm,video/quicktime,.mp4,.webm,.mov">
                             <div class="upload-preview" data-upload-preview></div>
                         </div>
+                        <small class="field-help">MP4 is recommended for maximum browser compatibility. The file is validated securely even when PHP Fileinfo is not installed.</small>
                         <?php if ($currentBannerVideo !== ''): ?>
                             <label class="premium-check compact-check">
                                 <input type="checkbox" name="remove_banner_video" value="1">
@@ -819,7 +821,10 @@ $previewColors = [
 
                 <div class="form-actions">
                     <button type="submit">Save banner & navigation</button>
+                    <button class="button secondary" type="button" data-banner-preview-action>Preview changes</button>
+                    <button class="button ghost" type="button" data-banner-cancel-action>Cancel changes</button>
                 </div>
+                <p class="secret-hint">Previewing does not publish anything. The public website changes only after you press “Save banner & navigation”.</p>
             </form>
         </section>
 
@@ -842,12 +847,13 @@ $previewColors = [
                 <div class="panel-icon">◎</div>
                 <div>
                     <h2>Quick preview</h2>
-                    <p>Shows the current saved visual style.</p>
+                    <p>Shows pending banner and navigation changes before you save.</p>
                 </div>
             </div>
 
             <div
                 class="mini-browser"
+                data-banner-live-preview
                 style="
                     --mini-primary:<?= h($previewColors['primary']) ?>;
                     --mini-accent:<?= h($previewColors['secondary']) ?>;
@@ -857,10 +863,12 @@ $previewColors = [
                     --mini-muted:<?= h($previewColors['muted']) ?>;
                 "
             >
-                <div class="mini-banner">
-                    <img src="../<?= h($currentBannerImage) ?>" alt="Banner preview">
+                <div class="mini-banner" data-banner-preview-stage>
+                    <img src="../<?= h($currentBannerImage) ?>" alt="Banner preview" data-banner-preview-image>
+                    <video muted loop playsinline controls hidden data-banner-preview-video></video>
+                    <iframe title="Embedded banner preview" loading="lazy" allow="autoplay; encrypted-media; picture-in-picture" hidden data-banner-preview-embed></iframe>
                 </div>
-                <div class="mini-nav">HOME · SERVICES · GALLERY · ABOUT · CONTACT</div>
+                <div class="mini-nav" data-banner-preview-nav>HOME · SERVICES · GALLERY · ABOUT · CONTACT</div>
                 <div class="mini-content">
                     <span>HOME IMPROVEMENT</span>
                     <h2>More Than Repairs and Maintenance.</h2>
@@ -870,7 +878,7 @@ $previewColors = [
             </div>
 
             <div class="preview-actions">
-                <a class="button secondary" href="../?preview=1" target="_blank" rel="noopener">Open full preview</a>
+                <a class="button secondary" href="../?preview=1" target="_blank" rel="noopener">Open saved website</a>
                 <a class="button ghost" href="media.php">Open Media Library</a>
             </div>
 

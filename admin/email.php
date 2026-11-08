@@ -5,6 +5,34 @@ require_once __DIR__.'/../core/EmailService.php';
 $pdo=db();
 $set=settings();
 $error='';
+
+function email_admin_mask_identifier(?string $value): string {
+    $value=trim((string)$value);
+    $length=strlen($value);
+    if($length===0)return 'Not configured';
+    if($length<=6)return substr($value,0,1).str_repeat('•',max(4,$length-1));
+    return substr($value,0,2).str_repeat('•',6).substr($value,-4);
+}
+
+function email_admin_mask_email(?string $value): string {
+    $value=trim((string)$value);
+    if(!str_contains($value,'@'))return email_admin_mask_identifier($value);
+    [$local,$domain]=explode('@',$value,2);
+    $domainParts=explode('.',$domain);
+    $domainName=array_shift($domainParts)??'';
+    $suffix=$domainParts?'.'.implode('.',$domainParts):'';
+    return substr($local,0,1).'•••@'.substr($domainName,0,1).'•••'.$suffix;
+}
+
+function email_admin_mask_host(?string $value): string {
+    $value=trim((string)$value);
+    if($value==='')return 'Not configured';
+    $parts=explode('.',$value);
+    if(count($parts)<2)return email_admin_mask_identifier($value);
+    $first=array_shift($parts);
+    return substr($first,0,1).'•••.'.implode('.',$parts);
+}
+
 if($_SERVER['REQUEST_METHOD']==='POST') {
     verify_csrf();
     $action=$_POST['action']??'';
@@ -22,16 +50,15 @@ if($_SERVER['REQUEST_METHOD']==='POST') {
             $type=(int)($_POST['correo_tipo_id']??1);
             $copySourceId=(int)($_POST['copy_source_id']??0);
             $method=in_array($_POST['metodo_envio']??'SMTP',['SMTP','GRAPH'],true)?$_POST['metodo_envio']:'SMTP';
-            $server=trim((string)($_POST['server']??''));
-            $email=trim((string)($_POST['correo']??''));
+            $serverInput=trim((string)($_POST['server']??''));
+            $emailInput=trim((string)($_POST['correo']??''));
             $port=(int)($_POST['port']??587);
             $secure=trim((string)($_POST['smtp_secure']??'tls'));
-            $tenant=trim((string)($_POST['tenant_id']??''));
-            $client=trim((string)($_POST['client_id']??''));
-            $graph=trim((string)($_POST['graph_user']??''));
+            $tenantInput=trim((string)($_POST['tenant_id']??''));
+            $clientInput=trim((string)($_POST['client_id']??''));
+            $graphInput=trim((string)($_POST['graph_user']??''));
             $sent=isset($_POST['save_to_sent_items'])?1:0;
             $estado=isset($_POST['estado'])?1:2;
-            if(!filter_var($email,FILTER_VALIDATE_EMAIL))throw new RuntimeException('Enter a valid sender email.');
             $typeCheck=$pdo->prepare('SELECT COUNT(*) FROM correo_tipo WHERE correo_tipo_id=?');
             $typeCheck->execute([$type]);
             if((int)$typeCheck->fetchColumn()!==1)throw new RuntimeException('Select a valid destination email purpose.');
@@ -39,6 +66,12 @@ if($_SERVER['REQUEST_METHOD']==='POST') {
             $old=$id?$mailer->configById($id):($copySourceId?$mailer->configById($copySourceId):null);
             if(($id||$copySourceId)&&!$old)throw new RuntimeException('The source email configuration was not found.');
             if($copySourceId&&(int)$old['correo_tipo_id']===$type)throw new RuntimeException('Choose a different email purpose for the copied connection.');
+            $server=$serverInput!==''?$serverInput:trim((string)($old['server']??''));
+            $email=$emailInput!==''?$emailInput:trim((string)($old['correo']??''));
+            $tenant=$tenantInput!==''?$tenantInput:trim((string)($old['tenant_id']??''));
+            $client=$clientInput!==''?$clientInput:trim((string)($old['client_id']??''));
+            $graph=$graphInput!==''?$graphInput:trim((string)($old['graph_user']??''));
+            if(!filter_var($email,FILTER_VALIDATE_EMAIL))throw new RuntimeException('Enter a valid sender email.');
             $pass=trim((string)($_POST['password']??''));
             $secret=trim((string)($_POST['client_secret']??''));
             $passEnc=$pass!==''?secret_encrypt($pass):($old['password']??'');
@@ -238,14 +271,12 @@ endforeach;
 </span>
 </label>
 </div>
-<label>Sender email<input type="email" name="correo" required value="<?=h($edit['correo']??($set['email']??'castrosreadycompany@gmail.com'))?>
-">
-<small>The messages are sent under Castro's Ready branding from this account.</small>
+<label>Sender email<input type="email" name="correo" <?=$edit?'':'required'?> value="" autocomplete="off" spellcheck="false" placeholder="<?=h($edit?'Saved: '.email_admin_mask_email($edit['correo']??'').' · Leave blank to keep it':'Enter sender email')?>">
+<small><?=$edit?'The complete saved address is not exposed in this page. Enter a new one only when replacing it.':"The messages are sent under Castro's Ready branding from this account."?></small>
 </label>
 <div class="email-method-fields" data-method="SMTP">
 <div class="three-col">
-<label>SMTP server<input name="server" value="<?=h(($edit['metodo_envio']??'SMTP')==='SMTP'?($edit['server']??'smtp.gmail.com'):'')?>
-">
+<label>SMTP server<input name="server" value="" autocomplete="off" spellcheck="false" placeholder="<?=h($edit&&($edit['metodo_envio']??'SMTP')==='SMTP'?'Saved: '.email_admin_mask_host($edit['server']??'').' · Leave blank to keep it':'Example: smtp.gmail.com')?>">
 </label>
 <label>Port<input type="number" name="port" value="<?=h((string)($edit['port']??587))?>
 ">
@@ -265,19 +296,16 @@ endforeach;
 </div>
 <div class="email-method-fields" data-method="GRAPH">
 <div class="two-col">
-<label>Tenant ID<input name="tenant_id" value="<?=h($edit['tenant_id']??'')?>
-">
+<label>Tenant ID<input name="tenant_id" value="" autocomplete="off" spellcheck="false" placeholder="<?=h($edit?'Saved: '.email_admin_mask_identifier($edit['tenant_id']??'').' · Leave blank to keep it':'Enter Microsoft Tenant ID')?>">
 </label>
-<label>Client ID<input name="client_id" value="<?=h($edit['client_id']??'')?>
-">
+<label>Client ID<input name="client_id" value="" autocomplete="off" spellcheck="false" placeholder="<?=h($edit?'Saved: '.email_admin_mask_identifier($edit['client_id']??'').' · Leave blank to keep it':'Enter Microsoft Client ID')?>">
 </label>
 </div>
 <label>Client Secret VALUE<input type="password" name="client_secret" placeholder="<?=$edit?'Leave blank to keep saved secret':'Microsoft Entra client secret'?>
 ">
 <small>Graph uses the Microsoft Entra application secret; it never requires the mailbox password.</small>
 </label>
-<label>Graph User / mailbox<input type="email" name="graph_user" value="<?=h($edit['graph_user']??'')?>
-">
+<label>Graph User / mailbox<input type="email" name="graph_user" value="" autocomplete="off" spellcheck="false" placeholder="<?=h($edit?'Saved: '.email_admin_mask_email($edit['graph_user']??$edit['correo']??'').' · Leave blank to keep it':'Enter Microsoft 365 mailbox')?>">
 </label>
 <label class="premium-switch">
 <input type="checkbox" name="save_to_sent_items" <?=!$edit||!empty($edit['save_to_sent_items'])?'checked':''?>
@@ -318,7 +346,7 @@ if($edit&&!$isCopy):
 <input type="hidden" name="action" value="test">
 <input type="hidden" name="id" value="<?=$edit['correo_id']?>
 ">
-<label>Test destination email<input type="email" name="test_to" required placeholder="you@example.com" value="<?=h($edit['correo']??'')?>
+<label>Test destination email<input type="email" name="test_to" required placeholder="you@example.com" value=""
 ">
 </label>
 <div class="form-actions">
@@ -359,14 +387,14 @@ foreach($rows as $r):
 </span>
 <h3><?=h($r['tipo_nombre'])?>
 </h3>
-<small><?=h($r['correo'])?>
+<small><?=h(email_admin_mask_email($r['correo']))?>
 </small>
 </div>
 <span class="badge <?=$r['estado']==1?'contacted':'closed'?>
 "><?=$r['estado']==1?'Active':'Inactive'?>
 </span>
 </div>
-<p class="muted"><?=$r['metodo_envio']==='GRAPH'?'Microsoft 365 / Graph mailbox: '.h($r['graph_user']?:$r['correo']):'SMTP: '.h($r['server']).':'.(int)$r['port']?>
+<p class="muted"><?=$r['metodo_envio']==='GRAPH'?'Microsoft 365 / Graph mailbox: '.h(email_admin_mask_email($r['graph_user']?:$r['correo'])):'SMTP: '.h(email_admin_mask_host($r['server'])).':'.(int)$r['port']?>
 </p>
 <div class="actions">
 <form method="post" class="actions">

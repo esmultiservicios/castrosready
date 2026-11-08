@@ -73,10 +73,10 @@ if($_SERVER['REQUEST_METHOD']==='POST') {
                 if(!empty($_FILES['video_file']['name'])) {
                     $uploaded=upload_media_file($_FILES['video_file'],'videos','website-video',250);
                     $ext=strtolower(pathinfo($uploaded,PATHINFO_EXTENSION));
-                    if(!in_array($ext,['mp4','webm'],true)) throw new RuntimeException('Uploaded video must be MP4 or WEBM.');
+                    if(!in_array($ext,['mp4','webm','mov'],true)) throw new RuntimeException('Uploaded video must be MP4, WEBM or MOV.');
                     $filePath=$uploaded;
                 }
-                if($filePath==='') throw new RuntimeException('Choose an MP4 or WEBM video file.');
+                if($filePath==='') throw new RuntimeException('Choose an MP4, WEBM or MOV video file.');
             } else {
                 $filePath='';
                 if(video_provider_id($type,$url)==='') throw new RuntimeException('Enter a valid '.($type==='youtube'?'YouTube':'Vimeo').' URL.');
@@ -112,7 +112,7 @@ $pageTitle='Videos'; $active='videos'; require __DIR__.'/_header.php';
     <div>
         <p class="eyebrow">WEBSITE VIDEOS</p>
         <h1>Manage videos</h1>
-        <p class="muted">Add as many videos as needed. YouTube or Vimeo is recommended for streaming, but direct MP4/WEBM upload is also supported.</p>
+        <p class="muted">Add as many videos as needed. YouTube or Vimeo is recommended for streaming, but direct MP4, WEBM or MOV upload is also supported.</p>
     </div>
     <a class="button secondary" href="videos.php">New video</a>
 </div>
@@ -139,7 +139,7 @@ $pageTitle='Videos'; $active='videos'; require __DIR__.'/_header.php';
     <div class="two-col">
         <label>Video type
             <select name="video_type" data-video-type>
-                <?php $vt=$edit['video_type']??'youtube'; foreach(['youtube'=>'YouTube','vimeo'=>'Vimeo','upload'=>'Upload MP4 / WEBM'] as $k=>$v): ?>
+                <?php $vt=$edit['video_type']??'youtube'; foreach(['youtube'=>'YouTube','vimeo'=>'Vimeo','upload'=>'Upload MP4 / WEBM / MOV'] as $k=>$v): ?>
                     <option value="<?=$k?>" <?=$vt===$k?'selected':''?>><?=$v?></option>
                 <?php endforeach; ?>
             </select>
@@ -150,16 +150,16 @@ $pageTitle='Videos'; $active='videos'; require __DIR__.'/_header.php';
         <div class="field-heading">
             <div>
                 <strong>Video file</strong>
-                <small>MP4 or WEBM · Direct upload is available when you do not use YouTube or Vimeo.</small>
+                <small>MP4, WEBM or MOV · MP4 is recommended for browser compatibility.</small>
             </div>
         </div>
         <div class="upload-zone premium-media-zone" data-upload-zone>
-            <input type="file" name="video_file" accept="video/mp4,video/webm" data-empty-label="Drop, paste or choose an MP4 / WEBM video">
+            <input type="file" name="video_file" accept="video/mp4,video/webm,video/quicktime,.mp4,.webm,.mov" data-empty-label="Drop, paste or choose an MP4 / WEBM / MOV video">
             <div class="upload-icon" aria-hidden="true">🎬</div>
             <strong>Drop video here</strong>
             <small>Drag & drop, paste from clipboard, or click to choose a file.</small>
             <span class="upload-zone-action">Choose video</span>
-            <div class="upload-selection-name" data-upload-name>Drop, paste or choose an MP4 / WEBM video</div>
+            <div class="upload-selection-name" data-upload-name>Drop, paste or choose an MP4 / WEBM / MOV video</div>
             <div class="upload-preview premium-upload-preview" data-upload-preview></div>
         </div>
         <?php if(!empty($edit['file_path'])): ?>
